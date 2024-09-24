@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+<div class="container">
+
+     {% include 'header/header-left.html' %}
+
+     <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Дашборд
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            {% if current_user.role.name == 'admin' %}
+            <form
+                    action="{{ url_for('user_dashboard') }}"
+                    class="flex flex-direction-row flex-align-end mb-20"
+            >
+                <div class="flex flex-direction-column">
+                    <label class="label label-required_danger mb-5" for="user_id" style="white-space: nowrap">Користувач</label>
+                    <div class="w-100">
+                        <select name="user_id" id="user_id" style="width: 300px">
+                            <option value="">Оберіть користувача</option>
+                            {% for user in users %}
+                            {% if filter == user.id %}
+                                <option value="{{user.id}}" selected>{{ user.username }}</option>
+                            {% else %}
+                                <option value="{{user.id}}">{{ user.username }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="button button-primary ml-15">
+                    {% include 'header/icons/icon-filter.html' %}
+                    <span style="margin-left: 10px">Фільтрувати</span>
+                </button>
+            </form>
+            {% endif %}
+
+            <div class="flex flex-direction-row flex-content-between">
+
+                <div class="card" style="width: 33%">
+                    <div class="p-20">
+                        <span class="card-title">
+                            Сьогодні
+                        </span>
+                    </div>
+                    <div class="card-border"></div>
+                    <div class="p-20">
+                        <div id="say-chart">
+                            <div id="day-chart-content"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card ml-15" style="width: 33%">
+                    <div class="p-20">
+                        <span class="card-title">
+                            Тиждень
+                        </span>
+                    </div>
+                    <div class="card-border"></div>
+                    <div class="p-20">
+                        <div id="week-chart">
+                            <div id="week-chart-content"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card ml-15" style="width: 33%">
+                    <div class="p-20">
+                        <span class="card-title">
+                            Місяць
+                        </span>
+                    </div>
+                    <div class="card-border"></div>
+                    <div class="p-20">
+                        <div id="month-chart">
+                            <div id="month-chart-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+</div>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+<script type="text/javascript" src="{{ url_for('static',path='chart.sample.js') }}"></script>
+
+
+<script>
+    let dashboard = "{{ dashboard|string }}"
+    dashboard = JSON.parse(dashboard.replaceAll('&#39;', '"'));
+
+    let options = {
+        chart: {
+            width: "100%",
+            height: 380,
+            type: "bar"
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            width: 1,
+            colors: ["#fff"]
+        },
+        series: [
+            {
+                name: "Total",
+                data: [dashboard["today"] / 60]
+            }
+        ],
+        xaxis: {
+            categories: [
+                ""
+            ]
+        },
+        legend: {
+            position: "bottom",
+            verticalAlign: "top",
+            containerMargin: {
+                left: 35,
+                right: 60
+            }
+        },
+        responsive: [
+            {
+                breakpoint: 1000,
+                options: {
+                    plotOptions: {
+                        bar: {
+                            horizontal: false
+                        }
+                    },
+                    legend: {
+                        position: "bottom"
+                    }
+                }
+            }
+        ]
+    };
+
+    let chart = new ApexCharts(
+        document.querySelector("#day-chart-content"),
+        options
+    );
+
+    options.series = [
+        {
+            name: "Total",
+            data: [dashboard["week"] / 60]
+        }
+    ]
+
+
+    chart.render();
+
+    let weekChart = new ApexCharts(
+        document.querySelector("#week-chart-content"),
+        options
+    );
+
+    weekChart.render();
+
+    options.series = [
+        {
+            name: "Total",
+            data: [dashboard["month"] / 60]
+        }
+    ]
+
+    let monthChart = new ApexCharts(
+        document.querySelector("#month-chart-content"),
+        options
+    );
+
+    monthChart.render();
+</script>
+</body>
+</html>

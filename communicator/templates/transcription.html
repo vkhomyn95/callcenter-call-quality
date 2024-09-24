@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+         <div class="breadcrumb">
+            <span class="breadcrumb-navigation flex flex-align-center" onclick="returnPrevious()">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </span>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Розпізнавання
+                </div>
+            </div>
+        </div>
+        <div class="content flex flex-direction-row">
+            <div class="card" style="width: 30%">
+                 <div class="p-20">
+                        <span class="card-title">
+                            Загальна інформація
+                        </span>
+                </div>
+                <div class="card-border"></div>
+                <div class="card-body">
+                    <div class="card-body-wrapper pt-20">
+                        <div class="flex flex-direction-column py-20 mb-10">
+                            <div>Дата отримання</div>
+                            <div class="recognition-label">{{ recognition.received_date }}</div>
+                        </div>
+                        <div class="flex flex-direction-column py-20 mb-10">
+                            <div>Дата початку транскрибування</div>
+                            <div class="recognition-label">{{ recognition.transcription_date }}</div>
+                        </div>
+                        <div class="flex flex-direction-column py-20 mb-10">
+                            <div>Дата завершення транскрибування</div>
+                            <div class="recognition-label">{{ recognition['@timestamp'] }}</div>
+                        </div>
+                        <div class="flex flex-direction-column py-20 mb-10">
+                            <div>Кількість каналів</div>
+                            <div class="recognition-label">{{ recognition.num_channels }}</div>
+                        </div>
+                        <div class="flex flex-direction-column py-20 mb-10">
+                            <div>Тривалість</div>
+                            <div class="recognition-label">{{ recognition.duration }}</div>
+                        </div>
+                        <div class="flex flex-direction-column py-20 mb-10">
+                            <div>Аудіозаписи</div>
+                            <div class="flex flex-direction-column ml-10 pt-10">
+                                {% for r in range(recognition.num_channels) %}
+                                Канал {{ r + 1 }}:
+                                <audio controls>
+                                    <source
+                                            src="{{ url_for('transcription_audio', transcription_id=recognition.task_id) }}"
+                                            type="audio/wav"
+                                    >
+                                    Your browser does not support the audio element.
+                                </audio>
+
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        {% if current_user.role.name == 'admin' %}
+                        <div class="p-20">
+                            <span class="card-title">
+                                Користувач
+                            </span>
+                        </div>
+                        <div class="card-border mb-20"></div>
+                        <div class="flex flex-direction-row flex-align-center py-20 mb-10">
+                            <div class="w-50">Ідентифікатор</div>
+                            <div class="w-50 recognition-label">{{ recognition.user_id }}</div>
+                        </div>
+                        <div class="flex flex-direction-row flex-align-center py-20 mb-10">
+                            <div class="w-50">Last name</div>
+                            <div class="w-50 recognition-label">{{ recognition.user.last_name }}</div>
+                        </div>
+                        <div class="flex flex-direction-row flex-align-center py-20 mb-10">
+                            <div class="w-50">First name</div>
+                            <div class="w-50 recognition-label">{{ recognition.user.first_name }}</div>
+                        </div>
+                        <div class="flex flex-direction-row flex-align-center py-20 mb-10">
+                            <div class="w-50">Email</div>
+                            <div class="w-50 recognition-label">{{ recognition.user.email }}</div>
+                        </div>
+                        <div class="flex flex-direction-row flex-align-center py-20 mb-10">
+                            <div class="w-50">Phone</div>
+                            <div class="w-50 recognition-label">{{ recognition.user.phone }}</div>
+                        </div>
+                        <div class="flex flex-direction-row flex-align-center py-20 mb-10">
+                            <div class="w-50">Audience</div>
+                            <div class="w-50 recognition-label">{{ recognition.user.audience }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card ml-15">
+                <div class="p-20">
+                    <span class="card-title">
+                        Транскрипція
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-wrapper pb-20">
+                     {% set headings = [
+                        {'name': 'Часова мітка', 'width': '10%'},
+                        {'name': 'Текст', 'width': '90%'},
+                    ] %}
+
+                    <div class="table-header">
+                        {% for heading in headings %}
+                        <div style="width: {{heading.width}};">
+                            {{ heading.name }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="content-wrapper-info" id="table-related">
+                        <div class="table-content">
+                            {% for r in recognition.result %}
+
+                            <div class="table-row">
+                                <div style="width: 8%; white-space: wrap">{{ r.timestamp }}</div>
+                                <div style="width: 92%; white-space: wrap">{{ r.text }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    function returnPrevious() {
+        if (!document.referrer) {
+            window.location.href = '/transcriptions'
+        } else if (!document.referrer.includes("transcriptions")) {
+            window.location.href = '/transcriptions'
+        } else {
+            window.location.href = document.referrer;
+        }
+    }
+</script>
+</html>

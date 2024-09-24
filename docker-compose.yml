@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  rq_worker:
+    build:
+      context: .
+      dockerfile: rq_worker/Dockerfile
+    container_name: rq_worker
+    env_file:
+      - ".env"
+    network_mode: host
+    restart: always
+    command: >
+      sh -c "python main.py &
+             rq-dashboard --redis-url ${REDIS_URL} --port ${RQ_DASHBOARD_PORT}"
+
+#  celery-worker:
+#    build:
+#      context: .
+#      dockerfile: celery_worker/Dockerfile
+#    container_name: celery_worker
+#    env_file:
+#      - ".env"
+#    network_mode: host
+#    restart: always
+#    command: >
+#      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads &
+#             celery --app celery_worker.worker.start.celery flower --port=${CELERY_FLOWER_PORT}"
+#
+#  communicator:
+#    build:
+#      context: .
+#      dockerfile: communicator/Dockerfile
+#    container_name: communicator
+#    volumes:
+#      - "/stor:/stor"
+#      - "/etc/localtime:/etc/localtime:ro"
+#    env_file:
+#      - ".env"
+#    network_mode: host
+#    restart: always
+#    command: >
+#      sh -c "python communicator/main.py"

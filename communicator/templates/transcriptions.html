@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Транскрипції
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Транскрипції
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            Детальні звіти
+                        </div>
+                    </div>
+                    <div class="content-wrapper-head-actions">
+                        <form id="filterForm" action="{{ url_for('transcriptions') }}" class="flex flex-direction-row flex-align-end">
+                            {% if current_user.role.name == 'admin' %}
+                                <div class="flex flex-direction-column ml-15">
+                                    <label class="label label-required_danger mb-5" for="user_id" style="white-space: nowrap">Користувач</label>
+                                    <div class="w-100">
+                                        <select name="user_id" id="user_id" style="width: 250px">
+                                            <option value="">Оберіть користувача</option>
+                                            {% for user in users %}
+                                            <option value="{{user.id}}" {% if filter.user_id and filter.user_id == user.id %}selected{% endif %}>{{ user.username }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="flex flex-direction-column ml-15">
+                                <label class="label label-required_danger mb-5" for="task_id" style="white-space: nowrap">Ідентифікатор запиту</label>
+                                <div class="w-100">
+                                    <input
+                                            style="width: 250px"
+                                            class="input"
+                                            type="text"
+                                            id="task_id"
+                                            name="task_id"
+                                            value="{{ filter.task_id }}"
+                                            autocomplete="off"
+                                    />
+                                </div>
+                            </div>
+
+                            <button class="button button-secondary ml-15" onclick="resetForm()">
+                                {% include 'header/icons/icon-filter-clear.html' %}
+                                <span style="margin-left: 10px">Скинути</span>
+                            </button>
+                            <button type="submit" class="button button-primary ml-15">
+                                {% include 'header/icons/icon-filter.html' %}
+                                <span style="margin-left: 10px">Фільтрувати</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'Дата отримання'},
+                    {'name': 'Дата транскрибування'},
+                    {'name': 'Ідентифікатор розпізнавання'},
+                    {'name': 'Кількість каналів'},
+                    {'name': 'Тривалість аудіозапису'},
+                    {'name': 'Дії', 'actions': True},
+                ] %}
+
+                <div class="table-header">
+                   {% for heading in headings %}
+                    <div style="width: {% if heading.actions %}50px{% else %}18.7%{% endif %};">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content">
+                        {% for recognition in recognitions %}
+                        <div class="table-row">
+                            <div style="width: 19%">{{ recognition.received_date }}</div>
+                            <div style="width: 19%">{{ recognition['@timestamp'] }}</div>
+                            <div style="width: 19%">{{ recognition.task_id }}</div>
+                            <div style="width: 19%">{{ recognition.num_channels }}</div>
+                            <div style="width: 19%">{{ recognition.duration }}</div>
+
+                            <div style="width: 50px">
+                                <div class="is-flex-direction-row is-align-content-center">
+                                    <a href="{{ url_for('transcription', transcription_id=recognition.task_id) }}" style="color: #00475A">
+                                       {% include 'header/icons/icon-edit.html' %}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% with page=page, total_pages=total_pages, start_page=start_page, end_page=end_page, template='transcriptions'  %}
+            {% include "pagination.html" %}
+        {% endwith %}
+    </div>
+</div>
+<script>
+    function resetForm() {
+        event.preventDefault();
+        document.getElementById('task_id').value = "";
+        document.getElementById('extension').value = "";
+        document.getElementById('campaign_id').value = "";
+        const uId = document.getElementById('user_id');
+        if (uId !== null)
+            uId.value = "";
+        document.getElementById('filterForm').submit();
+    }
+</script>
+</body>
+</html>
