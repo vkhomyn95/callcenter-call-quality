@@ -1,11 +1,14 @@
 import json
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 
-from communicator.database import elastic, mariadb
+from communicator.database import elastic
+from communicator.database.database import get_db
+from communicator.utils.crud import load_simple_users, load_user_by_id
 from communicator.variables import variables
 
 router = APIRouter()
@@ -20,6 +23,7 @@ async def transcriptions(
         limit: int = Query(10, alias="limit"),
         task_id: str = Query(None, alias="task_id"),
         user_id: int = Query(None, alias="user_id"),
+        db: Session = Depends(get_db)
 ):
     """
     Handle the display of recognitions.
@@ -64,7 +68,7 @@ async def transcriptions(
             'page': page,
             'start_page': max(1, page - 2),
             'end_page': min(total_pages, page + 2),
-            'users': mariadb.load_simple_users() if await is_admin(request) else [],
+            'users': load_simple_users(db) if await is_admin(request) else [],
             'filter': {
                 "user_id": user_id,
                 "task_id": task_id,
@@ -75,7 +79,7 @@ async def transcriptions(
 
 
 @router.get('/{transcription_id}', response_class=HTMLResponse)
-async def transcription(request: Request, transcription_id: str):
+async def transcription(request: Request, transcription_id: str, db: Session = Depends(get_db)):
     """
     Handle the display of a single recognition and its related recognitions.
 
@@ -90,6 +94,7 @@ async def transcription(request: Request, transcription_id: str):
     Returns:
         - A rendered template with the recognition data.
         - A redirect to the 'login' page if the user is not authenticated.
+        :param db:
         :param transcription_id:
         :param request:
     """
@@ -105,7 +110,7 @@ async def transcription(request: Request, transcription_id: str):
 
     merged_recognitions = []
     timestamps = set()
-    user = mariadb.load_user_by_id(searched_recognition["user_id"]) if searched_recognition is not None else None
+    user = load_user_by_id(db, searched_recognition["user_id"]) if searched_recognition is not None else None
 
     for recognition in searched_recognition["transcription"]:
         for chunk in recognition["chunks"]:

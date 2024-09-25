@@ -3,7 +3,7 @@
     <ul class="pagination-wrapper">
         {% if page != 1 and total_pages > 3 and (page - 1) != 1 and (page - 2) != 1 %}
             <li class="pagination-wrapper-option">
-                <a class="pagination-wrapper-option-button" href="?page=1&limit={{ limit }}" aria-label="Goto page 1">1</a>
+                <a class="pagination-wrapper-option-button" href="?page=1&limit={{ limit if limit else 10 }}" aria-label="Goto page 1">1</a>
             </li>
             {% if page > 3 %}
                 <li class="ml-20">
@@ -14,7 +14,7 @@
 
         {% for p in range(start_page, end_page + 1) %}
             <li class="pagination-wrapper-option ml-20">
-                <a class="pagination-wrapper-option-button {% if p == page %}pagination-wrapper-option-button-active{% endif %}" href="?page={{ p }}&limit={{ limit }}" aria-label="Goto page {{ p }}">{{ p }}</a>
+                <a class="pagination-wrapper-option-button {% if p == page %}pagination-wrapper-option-button-active{% endif %}" href="?page={{ p }}&limit={{ limit if limit else 10 }}" aria-label="Goto page {{ p }}">{{ p }}</a>
             </li>
         {% endfor %}
 
@@ -25,7 +25,7 @@
                 </li>
             {% endif %}
             <li class="pagination-wrapper-option ml-20">
-                <a class="pagination-wrapper-option-button" href="?page={{ total_pages }}&limit={{ limit }}" aria-label="Goto page {{ total_pages }}">{{ total_pages }}</a>
+                <a class="pagination-wrapper-option-button" href="?page={{ total_pages }}&limit={{ limit if limit else 10 }}" aria-label="Goto page {{ total_pages }}">{{ total_pages }}</a>
             </li>
         {% endif %}
     </ul>

@@ -16,13 +16,13 @@ class CustomElasticsearchBackend(ElasticsearchBackend):
         body = {
             'status': value["status"],
             'task_id': value["task_id"],
-            'duration': value["result"]["duration"],
-            'num_channels': value["result"]["num_channels"],
-            'user_id': value["result"]["user_id"],
-            'talk_record_id': value["result"]["talk_record_id"],
-            'transcription': value["result"]["transcription"],
-            'received_date': value["result"]["received_date"],
-            'transcription_date': value["result"]["transcription_date"],
+            'duration': value["result"]["duration"] if "duration" in value["result"] else None,
+            'num_channels': value["result"]["num_channels"] if "num_channels" in value["result"] else None,
+            'user_id': value["result"]["user_id"] if "user_id" in value["result"] else None,
+            'talk_record_id': value["result"]["talk_record_id"] if "talk_record_id" in value["result"] else None,
+            'transcription': value["result"]["transcription"] if "transcription" in value["result"] else None,
+            'received_date': value["result"]["received_date"] if "received_date" in value["result"] else None,
+            'transcription_date': value["result"]["transcription_date"] if "transcription_date" in value["result"] else None,
             '@timestamp': '{}Z'.format(datetime.now(timezone.utc).isoformat()[:-9]),
         }
 

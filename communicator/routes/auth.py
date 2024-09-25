@@ -1,12 +1,14 @@
 import typing
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 from werkzeug.security import check_password_hash
 
-from communicator.database import mariadb
+from communicator.database.database import get_db
+from communicator.utils.crud import load_user_by_username
 from communicator.variables import variables
 
 router = APIRouter()
@@ -42,7 +44,7 @@ def login(request: Request):
 
 @router.post("/", response_class=HTMLResponse)
 @router.post("/login/", response_class=HTMLResponse)
-async def auth(request: Request):
+async def auth(request: Request, db: Session = Depends(get_db)):
     """
     Handle the login page.
 
@@ -70,7 +72,7 @@ async def auth(request: Request):
         username = form.get("username").strip()
         password = form.get("password").strip()
 
-    user = mariadb.load_user_by_username(username, None)
+    user = load_user_by_username(db, username, None)
     if user and check_password_hash(user.password, password):
         request.session["user"] = user.json()
         return RedirectResponse(url="/users", status_code=303)

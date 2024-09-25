@@ -1,13 +1,22 @@
 import json
 import typing
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 from werkzeug.security import generate_password_hash
 
-from communicator.database import mariadb, RecognitionConfiguration, User, Tariff, elastic
+from communicator.database import RecognitionConfiguration, User, Tariff, elastic
+from communicator.database.database import get_db
+from communicator.utils.crud import (
+    load_users, count_users,
+    load_user_by_username,
+    insert_user,
+    load_user_by_id,
+    load_simple_users
+)
 from communicator.variables import variables
 
 router = APIRouter()
@@ -18,7 +27,8 @@ templates = Jinja2Templates(directory=variables.base_dir + "/templates")
 async def users(
         request: Request,
         page: int = Query(1, alias="page"),
-        limit: int = Query(10, alias="limit")
+        limit: int = Query(10, alias="limit"),
+        db: Session = Depends(get_db)
 ):
     """
     Handles the user management page for administrators.
@@ -36,8 +46,8 @@ async def users(
     if await is_admin(request):
         offset = (page - 1) * limit
 
-        searched_users = mariadb.load_users(limit, offset, session_user["id"])
-        users_count = mariadb.count_users()
+        searched_users = load_users(db, limit, offset, session_user["id"])
+        users_count = count_users(db)
         total_pages = 1 if users_count <= limit else (users_count + (limit - 1)) // limit
 
         # Render the template with the data
@@ -100,7 +110,7 @@ async def user_create_form(request: Request):
 
 
 @router.post("/create", response_class=HTMLResponse)
-async def user_create(request: Request):
+async def user_create(request: Request, db: Session = Depends(get_db)):
     """
     Handle the creation of a new user.
 
@@ -125,7 +135,8 @@ async def user_create(request: Request):
     if await is_admin(request):
         form = await request.form()
 
-        searched_user = mariadb.load_user_by_username(
+        searched_user = load_user_by_username(
+            db,
             form.get("username"),
             form.get("email")
         )
@@ -157,14 +168,14 @@ async def user_create(request: Request):
                 recognition=RecognitionConfiguration()
             )
             update_user(form, new_user)
-            mariadb.insert_user(new_user)
+            insert_user(db, new_user)
             return RedirectResponse(url="/users/", status_code=303)
     else:
         return RedirectResponse(url="/login/", status_code=303)
 
 
 @router.get('/profile', response_class=HTMLResponse)
-async def user_profile(request: Request):
+async def user_profile(request: Request, db: Session = Depends(get_db)):
     """
     Handle the login page.
 
@@ -188,13 +199,13 @@ async def user_profile(request: Request):
     if not session_user:
         return RedirectResponse(url="/login/", status_code=303)
 
-    searched_user = mariadb.load_user_by_id(session_user["id"])
+    searched_user = load_user_by_id(db, session_user["id"])
     searched_user.password = ""
     return templates.TemplateResponse(
         'user.html',
         {
             'request': request,
-            'user': session_user,
+            'user': searched_user,
             'is_profile': True,
             'current_user': session_user
         }
@@ -202,7 +213,10 @@ async def user_profile(request: Request):
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-async def user_dashboard(request: Request, user_id: int = Query(0, alias="user_id"),):
+async def user_dashboard(
+    request: Request, user_id: int = Query(0, alias="user_id"),
+    db: Session = Depends(get_db)
+):
     """
     Renders the user dashboard.
 
@@ -228,7 +242,7 @@ async def user_dashboard(request: Request, user_id: int = Query(0, alias="user_i
         'dashboard.html',
         {
             'request': request,
-            'users': mariadb.load_simple_users() if await is_admin(request) else [],
+            'users': load_simple_users(db) if await is_admin(request) else [],
             'dashboard': board,
             'filter': request.session["dashboard_filter"],
             'current_user': session_user
@@ -237,7 +251,7 @@ async def user_dashboard(request: Request, user_id: int = Query(0, alias="user_i
 
 
 @router.get("/{user_id}", response_class=HTMLResponse)
-async def user(request: Request, user_id: int):
+async def user(request: Request, user_id: int, db: Session = Depends(get_db)):
     """
     Handle the user's profile display and update.
 
@@ -267,7 +281,7 @@ async def user(request: Request, user_id: int):
     if not await is_admin(request):
         return RedirectResponse(url='/profile/', status_code=303)
 
-    searched_user = mariadb.load_user_by_id(user_id)
+    searched_user = load_user_by_id(db, user_id)
 
     searched_user.password = ""
     return templates.TemplateResponse(
@@ -281,7 +295,7 @@ async def user(request: Request, user_id: int):
 
 
 @router.post("/{user_id}", response_class=HTMLResponse)
-async def user_update(request: Request, user_id: int):
+async def user_update(request: Request, user_id: int, db: Session = Depends(get_db)):
     """
     Handle the user's profile display and update.
 
@@ -308,11 +322,11 @@ async def user_update(request: Request, user_id: int):
     if not session_user:
         return RedirectResponse(url='/login/', status_code=303)
 
-    searched_user = mariadb.load_user_by_id(user_id)
+    searched_user = load_user_by_id(db, user_id)
     if await is_admin(request) or session_user["id"] == searched_user.id:
         form = await request.form()
         update_user(form, searched_user)
-        mariadb.insert_user(searched_user)
+        insert_user(db, searched_user)
         if await is_admin(request):
             return RedirectResponse(url='/users/', status_code=303)
         else:

@@ -38,11 +38,7 @@ def validate_url(url: str) -> str:
         r"(?:/?|[/?]\S+)$",
         re.IGNORECASE,
     )
-
-    if re.match(regex, url) is None:
-        raise ValueError("Value of 'url' is not a valid URL.")
-
-    return url
+    return bool(re.match(regex, url))
 
 
 def send_post_request(webhook_payload: HookerRequestPayload) -> None:

@@ -4,9 +4,6 @@ celery
 flower
 python-dotenv
 elasticsearch
-sqlalchemy
-pymysql
-mysqlclient
 mariadb==1.1.8
 httpx[http2]
 pydantic

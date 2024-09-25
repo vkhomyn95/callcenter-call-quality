@@ -8,11 +8,13 @@ import httpx
 import torchaudio
 from fastapi import APIRouter, UploadFile, File, Query, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 from starlette import status
 from starlette.requests import Request
 from torchaudio import AudioMetaData
 
-from communicator.database import mariadb
+from communicator.database.database import get_db
+from communicator.utils.crud import load_user_by_api_key, decrement_user_tariff
 from communicator.job.start import celery
 from communicator.resampler.resampler import Resampler
 
@@ -56,6 +58,7 @@ async def transcribe(
         file: UploadFile = File(...),
         talk_record_id: str = Query(None, alias="talk_record_id"),
         origin: str = Query(None, alias="origin"),
+        db: Session = Depends(get_db)
 ) -> TranscriptionRequest:
     unique_uuid = str(uuid.uuid4())
 
@@ -63,7 +66,7 @@ async def transcribe(
     info: AudioMetaData = torchaudio.info(BytesIO(audio))
     duration = info.num_frames / info.sample_rate
 
-    user = mariadb.load_user_by_api_key(token)
+    user = load_user_by_api_key(db, token)
     if user is None or user.tariff.total < duration:
         raise CustomHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,7 +82,7 @@ async def transcribe(
         args=[received_date, duration, info.num_channels, user.id, talk_record_id, resampler, unique_uuid, origin]
     )
 
-    mariadb.decrement_user_tariff(user.tariff.id, round(duration))
+    decrement_user_tariff(db, user.tariff.id, round(duration))
 
     return TranscriptionRequest(unique_uuid, task.id)
 
@@ -89,7 +92,8 @@ async def transcribe_url(
         request: Request,
         token: str = Depends(get_token),
         user_id: str = Query(None, alias="user_id"),
-        talk_record_id: str = Query(None, alias="talk_record_id")
+        talk_record_id: str = Query(None, alias="talk_record_id"),
+        db: Session = Depends(get_db)
 ) -> TranscriptionRequest:
     unique_uuid = str(uuid.uuid4())
 
@@ -103,7 +107,7 @@ async def transcribe_url(
     info: AudioMetaData = torchaudio.info(BytesIO(response.content))
     duration = info.num_frames / info.sample_rate
 
-    user = mariadb.load_user_by_api_key(token)
+    user = load_user_by_api_key(db, token)
     if user is None or user.tariff.total < duration:
         raise CustomHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -120,7 +124,7 @@ async def transcribe_url(
     )
     print(task)
 
-    mariadb.decrement_user_tariff(user.tariff.id, round(duration))
+    decrement_user_tariff(db, user.tariff.id, round(duration))
 
     return TranscriptionRequest(unique_uuid, task.id)
 

@@ -1,10 +1,9 @@
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, VARCHAR, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+from communicator.database.database import Base, engine
 
 
 class Tariff(Base):
@@ -63,3 +62,6 @@ class User(Base):
     tariff = relationship('Tariff', uselist=False, back_populates="user")
     recognition = relationship('RecognitionConfiguration', uselist=False, back_populates="user")
     role = relationship('UserRole', back_populates='users')
+
+
+Base.metadata.create_all(engine)
