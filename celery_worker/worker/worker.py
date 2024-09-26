@@ -41,7 +41,7 @@ class CallbackTask(Task):
                 payload=retval
             )
         else:
-            logging.error(f" >> Not valid postback url for user_id: {retval['user_id']}")
+            logging.error(f" >> Success Not valid postback url for user_id: {retval['user_id']}")
 
     def on_failure(self, exc, task_id, args, kwargs, err_info):
         """
@@ -53,7 +53,6 @@ class CallbackTask(Task):
         :param kwargs: Original keyword arguments of the task.
         :param err_info: Exception info object.
         """
-
         received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin = args
 
         user = self._load_user(user_id)
@@ -73,11 +72,11 @@ class CallbackTask(Task):
                     "status": "FAILURE",
                     "talk_record_id": talk_record_id,
                     "user_id": user_id,
-                    "error": exc
+                    "error": str(exc)
                 }
             )
         else:
-            logging.error(f" >> Not valid postback url for user_id: {user_id}")
+            logging.error(f" >> Failure Not valid postback url for user_id: {user_id}")
 
     def _load_user(self, user_id):
         """
@@ -142,14 +141,10 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
     transcription_results = []
     transcription_date = datetime.now(timezone.utc).isoformat()[:-9]
 
-    try:
-        for file_path in resampler:
-            logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
-            transcription = process_transcription(os.path.join(variables.file_dir, file_path))
-            transcription_results.append(transcription)
-    except Exception as e:
-        logging.error(f" >> Error during transcription for request {unique_uuid}: {e}")
-        raise self.retry(exc=e)
+    for file_path in resampler:
+        logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
+        transcription = process_transcription(os.path.join(variables.file_dir, file_path))
+        transcription_results.append(transcription)
 
     return {
         "received_date": received_date,
@@ -171,10 +166,7 @@ def process_transcription(file_path):
     :param file_path: The file path to the audio file.
     :return: The transcription result without the 'text' key.
     """
-    try:
-        transcription = whisper.pipe(file_path, return_timestamps=True)
-        transcription.pop('text', None)
-        return transcription
-    except Exception as e:
-        logging.error(f" >> Error processing file {file_path}: {e}")
-        raise
+
+    transcription = whisper.pipe(file_path, return_timestamps=True)
+    transcription.pop('text', None)
+    return transcription
