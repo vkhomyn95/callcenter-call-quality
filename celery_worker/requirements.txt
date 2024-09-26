@@ -11,3 +11,5 @@ transformers
 datasets
 scipy
 torch
+accelerate
+ffmpeg-python

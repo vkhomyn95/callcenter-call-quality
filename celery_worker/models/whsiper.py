@@ -9,7 +9,7 @@ class WhisperModelProcessor:
     def __init__(self):
         print("initialization whisper")
         # self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(self.device)
         self.torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
