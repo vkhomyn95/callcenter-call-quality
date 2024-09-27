@@ -1,10 +1,203 @@
-{% extends "base.html" %}{% block content %}
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Queues Dashboard</title>
-    <script>
+
+  {% include 'head.html' %}
+
+  <body>
+
+  {% include 'header/header-top.html' %}
+
+  <div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Черги
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Черги
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            Моніторинг
+                        </div>
+                    </div>
+                    <div class="content-wrapper-head-actions">
+                        <div class="flex flex-direction-row justify-content-between ml-15">
+                          <label class="label label-required_danger" style="width: 100%">Автооновлення</label>
+                          <div class="w-100">
+                            <span id="toggleActive">
+                              <span onclick="toggleUserActive(true)">
+                                  {% include 'header/icons/icon-square-checked.html' %}
+                                  <input type="hidden" id="activeChecked">
+                              </span>
+                            </span>
+                          </div>
+                      </div>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'Назва черги'},
+                    {'name': 'У черзі'},
+                    {'name': 'Розпочатих'},
+                    {'name': 'Неуспішних'},
+                    {'name': 'Відкладених'},
+                    {'name': 'Завершених'},
+                    {'name': 'Дії', 'actions': True},
+                ] %}
+
+                <div class="table-header">
+                   {% for heading in headings %}
+                    <div style="width: {% if heading.actions %}50px{% else %}15.5%{% endif %};">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content">
+                        {% for queue_stats in queue_data %}
+                        <div class="table-row">
+                            <div style="width: 17%">
+                              <a href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}">
+                                {{ queue_stats.queue_name }}
+                              </a>
+                            </div>
+                            <div style="width: 17%">
+                              <a
+                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=started"
+                              >
+                                {{ queue_stats.started }}
+                              </a>
+                            </div>
+                            <div style="width: 18%">
+                              <a
+                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=failed"
+                              >
+                                {{ queue_stats.failed }}
+                              </a>
+                            </div>
+                            <div style="width: 17%">
+                              <a
+                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=deferred"
+                              >
+                                {{ queue_stats.deferred }}
+                              </a>
+                            </div>
+                            <div style="width: 17%">
+                              <a
+                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=finished"
+                              >
+                                {{ queue_stats.finished }}
+                              </a>
+                            </div>
+
+                            <div style="width: 50px">
+                                <div class="is-flex-direction-row is-align-content-center">
+                                    <a onclick="deleteJobsInQueue('{{ queue_stats.queue_name }}')" style="color: #00475A">
+                                       {% include 'header/icons/icon-edit.html' %}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="h2-section">
+      <h2>Queues</h2>
+      <div class="custom-switch">
+        <input
+          type="checkbox"
+          class="custom-control-input"
+          id="autorefresh-switch"
+          checked
+        />
+        <label class="custom-control-label"> Autorefresh </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <table id="queues">
+        <thead>
+          <tr>
+            <th>Queue Name</th>
+            <th>Queued</th>
+            <th>Started</th>
+            <th>Failed</th>
+            <th>Deferred</th>
+            <th>Finished</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for queue_stats in queue_data %}
+          <tr>
+            <td>
+              <a href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}">
+                {{ queue_stats.queue_name }}
+              </a>
+            </td>
+            <td>
+              <a
+                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=started"
+              >
+                {{ queue_stats.started }}
+              </a>
+            </td>
+            <td>
+              <a
+                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=failed"
+              >
+                {{ queue_stats.failed }}
+              </a>
+            </td>
+            <td>
+              <a
+                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=deferred"
+              >
+                {{ queue_stats.deferred }}
+              </a>
+            </td>
+            <td>
+              <a
+                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=finished"
+              >
+                {{ queue_stats.finished }}
+              </a>
+            </td>
+            <td>
+              <button
+                class="delete-button"
+                onclick="deleteJobsInQueue('{{ queue_stats.queue_name }}')"
+              >
+                Delete Jobs
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  <script>
       let autoRefreshEnabled = true;
       let autoRefreshInterval;
       const protocol = '{{ protocol }}';
@@ -182,84 +375,23 @@
       if (autoRefreshEnabled) {
         setInterval(updateQueuesData, 5000);
       }
-    </script>
-  </head>
 
-  <body>
-    <div class="h2-section">
-      <h2>Queues</h2>
-      <div class="custom-switch">
-        <input
-          type="checkbox"
-          class="custom-control-input"
-          id="autorefresh-switch"
-          checked
-        />
-        <label class="custom-control-label"> Autorefresh </label>
-      </div>
-    </div>
-    <div class="section">
-      <table id="queues">
-        <thead>
-          <tr>
-            <th>Queue Name</th>
-            <th>Queued</th>
-            <th>Started</th>
-            <th>Failed</th>
-            <th>Deferred</th>
-            <th>Finished</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for queue_stats in queue_data %}
-          <tr>
-            <td>
-              <a href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}">
-                {{ queue_stats.queue_name }}
-              </a>
-            </td>
-            <td>
-              <a
-                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=started"
-              >
-                {{ queue_stats.started }}
-              </a>
-            </td>
-            <td>
-              <a
-                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=failed"
-              >
-                {{ queue_stats.failed }}
-              </a>
-            </td>
-            <td>
-              <a
-                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=deferred"
-              >
-                {{ queue_stats.deferred }}
-              </a>
-            </td>
-            <td>
-              <a
-                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=finished"
-              >
-                {{ queue_stats.finished }}
-              </a>
-            </td>
-            <td>
-              <button
-                class="delete-button"
-                onclick="deleteJobsInQueue('{{ queue_stats.queue_name }}')"
-              >
-                Delete Jobs
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% endblock %}
+      function toggleUserActive(newValue) {
+        const activeSpan = document.getElementById('toggleActive');
+        if (newValue) {
+            activeSpan.innerHTML = `
+                <span onclick="toggleUserActive(false)">
+                    {% include 'header/icons/icon-square.html' %}
+                    <input type="hidden" id="activeNotChecked">
+                </span>`;
+        } else {
+            activeSpan.innerHTML = `
+                <span onclick="toggleUserActive(true)">
+                    {% include 'header/icons/icon-square-checked.html' %}
+                    <input type="hidden" id="activeChecked">
+                </span>`;
+        }
+    }
+    </script>
   </body>
 </html>

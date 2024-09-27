@@ -5,27 +5,27 @@
         <div class="left-panel-wrapper-link{% if not open %} left-panel-wrapper-link-selected{% endif %}">
 
             <div class="{% if not open %}left-header-wrapper-navigation-opened{% endif %} left-header-wrapper-navigation header-open-on-visible">
-                <div class="left-header-wrapper-navigation-content header-open-on-visible">Webhook</div>
+                <div class="left-header-wrapper-navigation-content header-open-on-visible">RQ-Вебхук</div>
                 <div class="left-header-wrapper-navigation-dropdown header-open-on-visible">
                    {% include 'header/icons/icon-down.html' %}
                 </div>
             </div>
 
-            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('hook_queues') }}">
                 {% include 'header/icons/icon-dashboard.html' %}
-                <div class="left-panel-wrapper-navigation-content">Queues</div>
+                <div class="left-panel-wrapper-navigation-content">Черги</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
             <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
                 {% include 'header/icons/icon-dashboard.html' %}
-                <div class="left-panel-wrapper-navigation-content">Jobs</div>
+                <div class="left-panel-wrapper-navigation-content">Джоби</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
             <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
                 {% include 'header/icons/icon-dashboard.html' %}
-                <div class="left-panel-wrapper-navigation-content">Workers</div>
+                <div class="left-panel-wrapper-navigation-content">Воркери</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 

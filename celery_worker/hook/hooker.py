@@ -76,10 +76,9 @@ def report_failure(job, connection, type, value, traceback):
 
 def send_webhook(*, webhook_payload: HookerRequestPayload) -> Job:
     return queue.enqueue(
-        send_post_request,
+        "celery_worker.hook.hooker.send_post_request",
         webhook_payload,
         retry=Retry(10, 60),
         job_timeout=20,
-        job_id=f"{str(uuid.uuid4())}",
-        on_failure=report_failure
+        job_id=f"{str(uuid.uuid4())}"
     )

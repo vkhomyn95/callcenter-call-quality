@@ -22,7 +22,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory=variables.base_dir + "/templates")
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/queues", response_class=HTMLResponse)
 async def hook_queues(request: Request):
     """
     Handles the user management page for administrators.
@@ -44,7 +44,7 @@ async def hook_queues(request: Request):
             protocol = request.url.scheme
 
             return templates.TemplateResponse(
-                "queues.html",
+                "webhook/queues.html",
                 {
                     "request": request,
                     "queue_data": queue_data,
@@ -52,13 +52,14 @@ async def hook_queues(request: Request):
                     "prefix": "prefix",
                     "rq_dashboard_version": "rq_dashboard_version",
                     "protocol": protocol,
+                    'current_user': session_user
                 },
             )
         except Exception as e:
             # logger.exception("An error occurred reading queues data template:", e)
             raise HTTPException(
                 status_code=500,
-                detail="An error occurred reading queues data template",
+                detail="An error occurred reading queues data template {}".format(e),
             )
 
 

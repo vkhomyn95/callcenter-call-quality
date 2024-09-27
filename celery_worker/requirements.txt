@@ -13,3 +13,4 @@ scipy
 torch
 accelerate
 ffmpeg-python
+pymysql
