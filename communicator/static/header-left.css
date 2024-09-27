@@ -121,3 +121,35 @@
 .left-panel-wrapper-trigger-divider {
   border-top: 1px solid #00546a;
 }
+.left-header-wrapper-navigation-content {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.left-header-wrapper-navigation-dropdown {
+    position: absolute;
+    right: 28px;
+    bottom: 30px;
+}
+.left-header-wrapper-navigation-opened {
+    color: #6bb0c2;
+}
+.left-header-wrapper-navigation {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 10px 9px 0;
+    padding: 9px 11px;
+    cursor: pointer;
+}
+.header-wrapper-navigation-dropdown svg {
+    color: #6bb0c2 !important;
+}
+.header-wrapper-navigation-svg {
+    position: absolute;
+    height: 20px;
+    width: 20px;
+}
+.header-wrapper-divider {
+    border-bottom: 1px solid #00546a;
+    margin: 15px 15px 0;
+}

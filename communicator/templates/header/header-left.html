@@ -3,17 +3,73 @@
 <header class="left-panel">
     <aside class="left-panel-wrapper">
         <div class="left-panel-wrapper-link{% if not open %} left-panel-wrapper-link-selected{% endif %}">
-          <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
-            {% include 'header/icons/icon-dashboard.html' %}
-            <div class="left-panel-wrapper-navigation-content">Звіти та статистика</div>
-            <div class="left-panel-wrapper-divider"></div>
-          </a>
 
-          <a class="left-panel-wrapper-navigation" href="{{ url_for('transcriptions') }}">
-            {% include 'header/icons/icon-recognitions.html' %}
-            <div class="left-panel-wrapper-navigation-content">Запити транскрибування</div>
-            <div class="left-panel-wrapper-divider"></div>
-          </a>
+            <div class="{% if not open %}left-header-wrapper-navigation-opened{% endif %} left-header-wrapper-navigation header-open-on-visible">
+                <div class="left-header-wrapper-navigation-content header-open-on-visible">Webhook</div>
+                <div class="left-header-wrapper-navigation-dropdown header-open-on-visible">
+                   {% include 'header/icons/icon-down.html' %}
+                </div>
+            </div>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Queues</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Jobs</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Workers</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <div class="header-wrapper-divider"></div>
+
+
+            <div class="{% if not open %}left-header-wrapper-navigation-opened{% endif %} left-header-wrapper-navigation header-open-on-visible">
+                <div class="left-header-wrapper-navigation-content header-open-on-visible">Transcriber</div>
+                <div class="left-header-wrapper-navigation-dropdown header-open-on-visible">
+                   {% include 'header/icons/icon-down.html' %}
+                </div>
+            </div>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Tasks</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Broker</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Workers</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <div class="header-wrapper-divider"></div>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('transcriptions') }}">
+                {% include 'header/icons/icon-recognitions.html' %}
+                <div class="left-panel-wrapper-navigation-content">Запити транскрибування</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
+                {% include 'header/icons/icon-dashboard.html' %}
+                <div class="left-panel-wrapper-navigation-content">Звіти та статистика</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
 
             {% if current_user.role.name == 'admin' %}
               <a class="left-panel-wrapper-navigation" href="{{ url_for('users') }}">
@@ -42,6 +98,10 @@
 
 <script>
   let isOpen = false;
+  let visibility = document.querySelectorAll('.header-open-on-visible');
+  visibility.forEach(el => {
+      el.style.display = 'none';
+  });
   function toggleMenu() {
       let menuToggleOpen = document.getElementById('menu-toggle-open');
       let menuToggleClose = document.getElementById('menu-toggle-close');
@@ -51,11 +111,17 @@
       if (isOpen) {
           menuToggleOpen.style.display = 'flex';
           menuToggleClose.style.display = 'none';
+          visibility.forEach(el => {
+              el.style.display = 'none';
+          });
           menu.classList.remove('left-panel-wrapper-open');
           isOpen = false;
       } else {
           menuToggleOpen.style.display = 'none';
           menuToggleClose.style.display = 'flex';
+          visibility.forEach(el => {
+              el.style.display = 'block';
+          });
           menu.classList.add('left-panel-wrapper-open');
           isOpen = true;
       }

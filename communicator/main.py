@@ -7,7 +7,8 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from communicator.routes import CustomHTTPException
-from communicator.routes import auth, transcribe, api, transcription
+from communicator.routes import auth, transcribe, api, transcription, hook
+
 from communicator.routes import user
 from communicator.variables import variables
 
@@ -31,6 +32,8 @@ app.include_router(api.router, prefix="/api/v1/user")
 app.include_router(auth.router)
 app.include_router(user.router, prefix="/users")
 app.include_router(transcription.router, prefix="/transcriptions")
+
+app.include_router(hook.router, prefix="/webhooks")
 
 
 if __name__ == "__main__":

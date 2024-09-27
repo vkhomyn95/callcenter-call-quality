@@ -15,3 +15,5 @@ celery
 torchaudio
 werkzeug
 soundfile
+pandas
+rq_scheduler

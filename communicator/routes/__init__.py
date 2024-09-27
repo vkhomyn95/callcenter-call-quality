@@ -5,6 +5,7 @@ from .auth import router
 from .transcribe import router
 from .transcription import router
 from .user import router
+from .hook import router
 
 
 class CustomHTTPException(HTTPException):
