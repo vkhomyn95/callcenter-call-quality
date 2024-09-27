@@ -11,7 +11,7 @@ services:
     network_mode: host
     restart: always
     command: >
-      sh -c "rq-dashboard --redis-url ${REDIS_URL} --port ${RQ_DASHBOARD_PORT}"
+      sh -c "python main.py & rq-dashboard --redis-url ${REDIS_URL} --port ${RQ_DASHBOARD_PORT}"
 
   celery-worker:
     build:

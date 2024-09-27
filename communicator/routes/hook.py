@@ -21,6 +21,8 @@ router = APIRouter()
 
 templates = Jinja2Templates(directory=variables.base_dir + "/templates")
 
+prefix = "/webhooks"
+
 
 @router.get("/queues", response_class=HTMLResponse)
 async def hook_queues(request: Request):
@@ -49,7 +51,7 @@ async def hook_queues(request: Request):
                     "request": request,
                     "queue_data": queue_data,
                     "active_tab": "active_tab",
-                    "prefix": "prefix",
+                    "prefix": prefix,
                     "rq_dashboard_version": "rq_dashboard_version",
                     "protocol": protocol,
                     'current_user': session_user
@@ -61,27 +63,35 @@ async def hook_queues(request: Request):
                 status_code=500,
                 detail="An error occurred reading queues data template {}".format(e),
             )
+    else:
+        return RedirectResponse(url="/login/", status_code=303)
 
 
-        # offset = (page - 1) * limit
-        #
-        # searched_users = load_users(db, limit, offset, session_user["id"])
-        # users_count = count_users(db)
-        # total_pages = 1 if users_count <= limit else (users_count + (limit - 1)) // limit
-        #
-        # # Render the template with the data
-        # return templates.TemplateResponse(
-        #     'users.html',
-        #     {
-        #         'request': request,
-        #         'users': searched_users,
-        #         'total_pages': total_pages,
-        #         'page': page,
-        #         'start_page': max(1, page - 2),
-        #         'end_page': min(total_pages, page + 2),
-        #         'current_user': session_user
-        #     }
-        # )
+@router.get("/queues/json", response_model=list[QueueRegistryStats])
+async def read_queues(request: Request):
+    """
+    Handles the user management page for administrators.
+
+    Returns:
+        HTMLResponse: The rendered HTML of the user management page if the user is an admin.
+                      Redirects to the login page if no user is in session.
+                      Redirects to the user's personal page if the user is not an admin.
+    """
+    session_user = await get_user(request)
+
+    if not session_user:
+        return RedirectResponse(url="/login/", status_code=303)
+
+    if await is_admin(request):
+        try:
+            queue_data = get_job_registry_amount(variables.redis_url)
+
+            return queue_data
+        except Exception as e:
+            # logger.exception("An error occurred reading queues data json:", e)
+            raise HTTPException(
+                status_code=500, detail="An error occurred reading queues data json"
+            )
     else:
         return RedirectResponse(url="/login/", status_code=303)
 

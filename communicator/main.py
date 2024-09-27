@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
+from communicator.logger.logger import Logger
 from communicator.routes import CustomHTTPException
 from communicator.routes import auth, transcribe, api, transcription, hook
 
@@ -17,6 +18,8 @@ app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
 
 app.mount("/static", StaticFiles(directory=variables.base_dir + "/static"), name="static")
 templates = Jinja2Templates(directory=variables.base_dir + "/templates")
+
+logger = Logger(variables.logger_dir)
 
 
 @app.exception_handler(CustomHTTPException)
