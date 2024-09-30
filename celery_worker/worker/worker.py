@@ -6,11 +6,11 @@ from celery import Task
 
 from celery_worker.database.database import pymysql_db
 from celery_worker.hook.hooker import validate_url, send_webhook
-# from celery_worker.models.whsiper import WhisperModelProcessor
+from celery_worker.models.whsiper import WhisperModelProcessor
 from celery_worker.variables import variables
 from celery_worker.worker.start import celery
 
-# whisper = WhisperModelProcessor()
+whisper = WhisperModelProcessor()
 
 
 class CallbackTask(Task):
@@ -167,7 +167,6 @@ def process_transcription(file_path):
     :return: The transcription result without the 'text' key.
     """
 
-    # transcription = whisper.pipe(file_path, return_timestamps=True)
-    # transcription.pop('text', None)
-    # return transcription
-    return None
+    transcription = whisper.pipe(file_path, return_timestamps=True)
+    transcription.pop('text', None)
+    return transcription

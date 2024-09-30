@@ -10,7 +10,7 @@ from starlette.templating import Jinja2Templates
 from communicator.utils.webhook_jobs import get_jobs, QueueJobRegistryStats, JobDataDetailed, get_job
 from communicator.utils.webhook_queues import (
     QueueRegistryStats,
-    get_job_registry_amount,
+    get_job_registry_amount, delete_jobs_for_queue,
 )
 from communicator.utils.webhook_workers import get_workers, WorkerData
 from communicator.variables import variables
@@ -88,6 +88,26 @@ async def read_queues(request: Request):
             logging.error(f"=== An error occurred reading queues data json: ", e)
             raise HTTPException(
                 status_code=500, detail="An error occurred reading queues data json"
+            )
+    else:
+        return RedirectResponse(url="/login/", status_code=303)
+
+
+@router.delete("/queues/{queue_name}")
+async def delete_jobs_in_queue(request: Request, queue_name: str):
+    session_user = await get_user(request)
+
+    if not session_user:
+        return RedirectResponse(url="/login/", status_code=303)
+
+    if await is_admin(request):
+        try:
+            deleted_ids = delete_jobs_for_queue(queue_name, variables.redis_url)
+            return deleted_ids
+        except Exception as e:
+            logging.error(f"=== An error occurred while deleting jobs in queue: ", e)
+            raise HTTPException(
+                status_code=500, detail="An error occurred while deleting jobs in queue"
             )
     else:
         return RedirectResponse(url="/login/", status_code=303)

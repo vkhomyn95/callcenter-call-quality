@@ -12,19 +12,19 @@
             </div>
 
             <a class="left-panel-wrapper-navigation" href="{{ url_for('hook_queues') }}">
-                {% include 'header/icons/icon-dashboard.html' %}
+                {% include 'header/icons/icon-queue.html' %}
                 <div class="left-panel-wrapper-navigation-content">Черги</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
             <a class="left-panel-wrapper-navigation" href="{{ url_for('hook_jobs') }}">
-                {% include 'header/icons/icon-dashboard.html' %}
+                {% include 'header/icons/icon-task.html' %}
                 <div class="left-panel-wrapper-navigation-content">Задачі</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
             <a class="left-panel-wrapper-navigation" href="{{ url_for('hook_workers') }}">
-                {% include 'header/icons/icon-dashboard.html' %}
+                {% include 'header/icons/icon-brokers.html' %}
                 <div class="left-panel-wrapper-navigation-content">Воркери</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
