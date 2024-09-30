@@ -62,15 +62,15 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="flex flex-direction-row justify-content-between ml-15">
-                          <label class="label label-required_danger" style="width: 100%">Автооновлення</label>
-                          <div class="w-100">
-                            <span id="toggleActive">
+                        <div class="flex flex-direction-column ml-15">
+                          <label class="label label-required_danger mb-5" style="width: 100%">Автооновлення</label>
+                          <div class="w-100 flex flex-content-center flex-align-center" style="height: 36px">
+                            <div id="toggleActive">
                               <span onclick="toggleAutorefresh()">
                                   {% include 'header/icons/icon-square-checked.html' %}
                                   <input type="hidden" checked id="autorefresh-switch">
                               </span>
-                            </span>
+                            </div>
                           </div>
                       </div>
                     </div>
@@ -91,7 +91,7 @@
                          {{ heading.name }}
                      </div>
                     {% else %}
-                    <div style="width: {% if heading.actions %}50px{% else %}{% if heading.status %}10%{% else %}{% if heading.id %}19%{% else %}22%{% endif %}{% endif %}{% endif %};">
+                    <div style="width: {% if heading.actions %}60px{% else %}{% if heading.status %}10%{% else %}{% if heading.id %}19%{% else %}22%{% endif %}{% endif %}{% endif %};">
                         {{ heading.name }}
                     </div>
                     {% endif %}
@@ -115,14 +115,14 @@
                               {{ job.created_at }}
                             </div>
 
-                            <div style="width: 50px">
+                            <div style="width: 60px">
                                 <div class="is-flex-direction-row is-align-content-center">
                                     <a onclick="deleteJob('{{ job.id }}')" style="color: #00475A">
                                        {% include 'header/icons/icon-delete.html' %}
                                     </a>
                                     {% if state == "failed" %}
                                         <a onclick="requeueJob('{{ job.id }}')" style="color: #00475A">
-                                           {% include 'header/icons/icon-edit.html' %}
+                                           {% include 'header/icons/icon-requeue.html' %}
                                         </a>
                                     {% endif %}
                                 </div>
@@ -279,15 +279,25 @@
                   .text(job.id);
                 row.append($("<div style='width: 19%'>").append(jobLink));
                 row.append($("<div style='width: 10%'>").append(state));
-                row.append($("<div style='width: 44%'>").text(job.name));
-                var formattedDate = new Date(job.created_at).toLocaleString();
-                row.append($("<div>").text(formattedDate));
+                row.append($("<div style='width: 45%'>").text(job.name));
+                row.append($("<div style='width: 20%'>").text(job.created_at));
 
-                var optionsCell = $("<div>");
+                var optionsCell = $("<div style='width: 80px' class='is-flex-direction-row is-align-content-center'>");
                 optionsCell.append(
-                  $("<button>")
+                  $("<a>")
+                      .html(`
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <g clip-path="url(#clip0_1_1034)">
+                            <path d="M2.5 4.54465H13.5M3.1875 4.54465L3.875 13.2113C3.875 13.5944 4.01987 13.9618 4.27773 14.2327C4.53559 14.5036 4.88533 14.6558 5.25 14.6558H10.75C11.1147 14.6558 11.4644 14.5036 11.7223 14.2327C11.9801 13.9618 12.125 13.5944 12.125 13.2113L12.8125 4.54465M5.9375 4.54465V2.37798C5.9375 2.18644 6.00993 2.00274 6.13886 1.8673C6.2678 1.73185 6.44266 1.65576 6.625 1.65576H9.375C9.55734 1.65576 9.7322 1.73185 9.86114 1.8673C9.99007 2.00274 10.0625 2.18644 10.0625 2.37798V4.54465M6.625 8.15576L9.375 11.0447M9.375 8.15576L6.625 11.0447" stroke="#00475A" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+                            </g>
+                            <defs>
+                            <clipPath id="clip0_1_1034">
+                            <rect width="16" height="16" fill="white" transform="translate(0 0.00439453)"/>
+                            </clipPath>
+                            </defs>
+                        </svg>
 
-                    .text("Delete")
+                    `)
                     .addClass("delete-button")
                     .on("click", function () {
                       deleteJob(job.id);
@@ -297,8 +307,16 @@
                 if (state === "failed") {
                   optionsCell.append($("<span>").addClass("button-spacer"));
                   optionsCell.append(
-                    $("<button>")
-                      .text("Requeue")
+                    $("<a>")
+                      .html(
+                          `
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M17 2v6h-6" />
+                              <path d="M3 12a9 9 0 0 1 15-6.7L17 8" />
+                              <path d="M21 12a9 9 0 0 1-15 6.7L7 16" />
+                            </svg>
+                          `
+                      )
                       .addClass("requeue-button")
                       .on("click", function () {
                         requeueJob(job.id);
