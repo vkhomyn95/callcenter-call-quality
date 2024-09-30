@@ -1,10 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
 
-</body>
+  {% include 'head.html' %}
+
+  <body>
+
+  {% include 'header/header-top.html' %}
+
+  <div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Воркери
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Воркери
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            Моніторинг
+                        </div>
+                    </div>
+                    <div class="content-wrapper-head-actions">
+                        <div class="flex flex-direction-row justify-content-between ml-15">
+                          <label class="label label-required_danger" style="width: 100%">Автооновлення</label>
+                          <div class="w-100">
+                            <span id="toggleActive">
+                              <span onclick="toggleAutorefresh()">
+                                  {% include 'header/icons/icon-square-checked.html' %}
+                                  <input type="hidden" checked id="autorefresh-switch">
+                              </span>
+                            </span>
+                          </div>
+                      </div>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'Назва воркера'},
+                    {'name': 'Поточна джоба'},
+                    {'name': 'Черги'},
+                    {'name': 'Назва черги'},
+                    {'name': 'Успішних джоб'},
+                    {'name': 'Неуспішних джоб'},
+                ] %}
+
+                <div class="table-header">
+                   {% for heading in headings %}
+                    <div style="width:16%;">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content">
+                        {% if not worker_data %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Немає воркерів
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% for worker in worker_data %}
+                        <div class="table-row">
+                            <div style="width: 16%">
+                                {{ worker.name }}
+                            </div>
+                            <div style="width: 16.5%">
+                              {% if worker.current_job != 'Idle' %}
+                              <a href="{{baseurl}}/job/{{ worker.current_job_id }}"
+                                >{{ worker.current_job }}</a
+                              >
+                              {% else %} {{ worker.current_job }} {% endif %}
+                            </div>
+                            <div style="width: 16%">
+                              {% for queue_name in worker.queues %} {{ queue_name }} {% if not loop.last %}, {% endif %} {% endfor %}
+                            </div>
+                            <div style="width: 51%; display: flex; flex-direction: column">
+                                {% for queue_name in worker.queues %}
+                                <div style="display: flex; flex-direction: row">
+                                    <div style="width: 100%">
+                                        {{ queue_name }}
+                                    </div>
+                                    <div style="width: 100%">
+                                        <a
+                                                href="{{baseurl}}/jobs/?state=successful&queue_name={{queue_name}}"
+                                        >
+                                            {{ worker.successful_job_count }}
+                                        </a>
+                                    </div>
+                                    <div style="width: 100%">
+                                        <a href="{{baseurl}}/jobs/?state=failed&queue_name={{queue_name}}"
+                                        >{{ worker.failed_job_count }}</a
+                                        >
+                                    </div>
+                                </div>
+                             {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+  <script>
+      let autoRefreshEnabled = true;
+      let autoRefreshInterval;
+      const protocol = '{{ protocol }}';
+      const host = window.location.host;
+      const prefix = '{{ prefix }}';
+      const baseurl = protocol + '://' + host + prefix;
+
+      function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+
+      function showErrorNotification(message) {
+        const notification = documenr.createElement('div');
+        notification.className = 'error-notification';
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+
+      function toggleAutorefresh() {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        if (autoRefreshEnabled) {
+          autoRefreshInterval = setInterval(updateData, 5000);
+        } else {
+          clearInterval(autoRefreshInterval);
+        }
+
+        const activeSpan = document.getElementById('toggleActive');
+        if (!autoRefreshEnabled) {
+            activeSpan.innerHTML = `
+                <span onclick="toggleAutorefresh()">
+                    {% include 'header/icons/icon-square.html' %}
+                    <input type="hidden" id="autorefresh-switch">
+                </span>`;
+        } else {
+            activeSpan.innerHTML = `
+                <span onclick="toggleAutorefresh()">
+                    {% include 'header/icons/icon-square-checked.html' %}
+                    <input type="hidden" checked id="autorefresh-switch">
+                </span>`;
+        }
+      }
+
+      $(document).ready(function () {
+        $('#autorefresh-switch').on('change', function () {
+          toggleAutorefresh();
+        });
+        autoRefreshEnabled = document.getElementById("autorefresh-switch").hasAttribute('checked');
+        if (autoRefreshEnabled) {
+          autoRefreshInterval = setInterval(updateData, 5000);
+        }
+      });
+
+      function updateData() {
+        if (autoRefreshEnabled) {
+          $.ajax({
+            url: baseurl + "/workers/json",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+              updateTable(data);
+            },
+            error: function (error) {
+              console.error("Error fetching data: ", error);
+              showErrorNotification("Error fetching workers data");
+            },
+          });
+        }
+      }
+
+      function updateTable(data) {
+        var tableBody = $("#workers tbody");
+        tableBody.empty();
+
+        $.each(data, function (index, worker) {
+          var row = $("<tr>");
+          row.append($("<td>").text(worker.name));
+          if (worker.current_job !== "Idle") {
+            var jobLink = $("<a>")
+              .attr("href", baseurl + "/jobs/" + worker.current_job_id)
+              .text(worker.current_job);
+            row.append($("<td>").append(jobLink));
+          } else {
+            row.append($("<td>").text(worker.current_job));
+          }
+
+          var queuesCell = $("<td>");
+          $.each(worker.queues, function (queueIndex, queue) {
+            queuesCell.append(queue);
+            if (queueIndex < worker.queues.length - 1) {
+              queuesCell.append(", ");
+            }
+          });
+          row.append(queuesCell);
+          row.append($("<td>").text(worker.successful_job_count));
+          row.append($("<td>").text(worker.failed_job_count));
+
+          tableBody.append(row);
+        });
+      }
+
+      if (autoRefreshEnabled) {
+        setInterval(updateData, 5000);
+      }
+    </script>
+  </body>
 </html>

@@ -51,6 +51,7 @@
 
                 {% set headings = [
                     {'name': 'Назва черги'},
+                    {'name': 'У черзі'},
                     {'name': 'Розпочатих'},
                     {'name': 'Неуспішних'},
                     {'name': 'Відкладених'},
@@ -60,7 +61,7 @@
 
                 <div class="table-header">
                    {% for heading in headings %}
-                    <div style="width: {% if heading.actions %}50px{% else %}18%{% endif %};">
+                    <div style="width: {% if heading.actions %}50px{% else %}16%{% endif %};">
                         {{ heading.name }}
                     </div>
                     {% endfor %}
@@ -68,37 +69,51 @@
 
                 <div class="content-wrapper-info">
                     <div class="table-content">
+                        {% if not queue_data %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Немає черг
+                            </div>
+                        </div>
+                        {% endif %}
                         {% for queue_stats in queue_data %}
                         <div class="table-row">
-                            <div style="width: 19%">
-                              <a href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}">
+                            <div style="width: 17%">
+                              <a href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}">
                                 {{ queue_stats.queue_name }}
                               </a>
                             </div>
-                            <div style="width: 19%">
+                            <div style="width: 17%">
+                                <a
+                                    href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=queued"
+                                  >
+                                    {{ queue_stats.queued }}
+                                  </a>
+                            </div>
+                            <div style="width: 17%">
                               <a
-                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=started"
+                                href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=started"
                               >
                                 {{ queue_stats.started }}
                               </a>
                             </div>
-                            <div style="width: 18%">
+                            <div style="width: 17%">
                               <a
-                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=failed"
+                                href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=failed"
                               >
                                 {{ queue_stats.failed }}
                               </a>
                             </div>
-                            <div style="width: 18%">
+                            <div style="width: 17%">
                               <a
-                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=deferred"
+                                href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=deferred"
                               >
                                 {{ queue_stats.deferred }}
                               </a>
                             </div>
-                            <div style="width: 18%">
+                            <div style="width: 17%">
                               <a
-                                href="{{baseurl}}/jobs?queue={{ queue_stats.queue_name }}&state=finished"
+                                href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=finished"
                               >
                                 {{ queue_stats.finished }}
                               </a>
@@ -107,7 +122,7 @@
                             <div style="width: 50px">
                                 <div class="is-flex-direction-row is-align-content-center">
                                     <a onclick="deleteJobsInQueue('{{ queue_stats.queue_name }}')" style="color: #00475A">
-                                       {% include 'header/icons/icon-edit.html' %}
+                                       {% include 'header/icons/icon-delete.html' %}
                                     </a>
                                 </div>
                             </div>
@@ -127,7 +142,6 @@
       const host = window.location.host;
       const prefix = '{{ prefix }}';
       const baseurl = protocol + '://' + host + prefix;
-
       function showNotification(message) {
         const notification = document.createElement('div');
         notification.className = 'notification';
@@ -180,7 +194,7 @@
         $('#autorefresh-switch').on('change', function () {
           toggleAutorefresh();
         });
-        autoRefreshEnabled = $('#autorefresh-switch').hasAttribute('checked');
+        autoRefreshEnabled = document.getElementById("autorefresh-switch").hasAttribute('checked');
         if (autoRefreshEnabled) {
           autoRefreshInterval = setInterval(updateQueuesData, 5000);
         }

@@ -1,10 +1,368 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
 
-</body>
+  {% include 'head.html' %}
+
+  <body>
+
+  {% include 'header/header-top.html' %}
+
+  <div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Задачі
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Задачі
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            Моніторинг
+                        </div>
+                    </div>
+                    <div class="content-wrapper-head-actions">
+                        <div class="flex flex-direction-column ml-15">
+                            <label class="label label-required_danger mb-5" for="state-filter" style="white-space: nowrap">Стан</label>
+                            <div class="w-100">
+                                <select id="state-filter" onchange="filterJobsByState()" style="width: 250px">
+                                  <option value="all">All</option>
+                                  <option value="scheduled">scheduled</option>
+                                  <option value="queued">queued</option>
+                                  <option value="started">started</option>
+                                  <option value="failed">failed</option>
+                                  <option value="deferred">deferred</option>
+                                  <option value="finished">finished</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex flex-direction-column ml-15">
+                            <label class="label label-required_danger mb-5" for="queue-name-filter" style="white-space: nowrap">Черга</label>
+                            <div class="w-100">
+                                <select id="queue-name-filter" onchange="filterJobsByQueue()" style="width: 250px">
+                                  <option value="all">All</option>
+                                  {% for queue in job_data %}
+                                  <option value="{{ queue.queue_name }}">
+                                    {{ queue.queue_name }}
+                                  </option>
+                                  {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex flex-direction-row justify-content-between ml-15">
+                          <label class="label label-required_danger" style="width: 100%">Автооновлення</label>
+                          <div class="w-100">
+                            <span id="toggleActive">
+                              <span onclick="toggleAutorefresh()">
+                                  {% include 'header/icons/icon-square-checked.html' %}
+                                  <input type="hidden" checked id="autorefresh-switch">
+                              </span>
+                            </span>
+                          </div>
+                      </div>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'ID'},
+                    {'name': 'Статус', 'status': True},
+                    {'name': 'Назва'},
+                    {'name': 'Дата'},
+                    {'name': 'Дії', 'actions': True},
+                ] %}
+
+                <div class="table-header">
+                   {% for heading in headings %}
+                    <div style="width: {% if heading.actions %}50px{% else %}{% if heading.status %}10%{% else %}18%{% endif %}{% endif %};">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content" id="table-content">
+                        {% for queue in job_data %} {% for state in ["queued", "started", "failed", "deferred", "finished"] %} {% for job in queue[state] %}
+                        <div class="table-row">
+                            <div style="width: 19%">
+                              <a href="#" data-job-id="{{ job.id }}">{{ job.id }}</a>
+                            </div>
+                            <div style="width: 10%">
+                              {{ state }}
+                            </div>
+                            <div style="width: 18%">
+                              {{ job.name }}
+                            </div>
+                            <div style="width: 18%">
+                              {{ job.created_at }}
+                            </div>
+
+                            <div style="width: 50px">
+                                <div class="is-flex-direction-row is-align-content-center">
+                                    <a onclick="deleteJob('{{ job.id }}')" style="color: #00475A">
+                                       {% include 'header/icons/icon-delete.html' %}
+                                    </a>
+                                    {% if state == "failed" %}
+                                        <a onclick="requeueJob('{{ job.id }}')" style="color: #00475A">
+                                           {% include 'header/icons/icon-edit.html' %}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %} {% endfor %} {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+  <script>
+      let autoRefreshEnabled = true;
+      let autoRefreshInterval;
+      const protocol = '{{ protocol }}';
+      const host = window.location.host;
+      const prefix = '{{ prefix }}';
+      const baseurl = protocol + '://' + host + prefix;
+
+      function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+
+      function showErrorNotification(message) {
+        const notification = documenr.createElement('div');
+        notification.className = 'error-notification';
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+
+      function toggleAutorefresh() {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        if (autoRefreshEnabled) {
+          autoRefreshInterval = setInterval(updateJobsData, 5000);
+        } else {
+          clearInterval(autoRefreshInterval);
+        }
+
+        const activeSpan = document.getElementById('toggleActive');
+        if (!autoRefreshEnabled) {
+            activeSpan.innerHTML = `
+                <span onclick="toggleAutorefresh()">
+                    {% include 'header/icons/icon-square.html' %}
+                    <input type="hidden" id="autorefresh-switch">
+                </span>`;
+        } else {
+            activeSpan.innerHTML = `
+                <span onclick="toggleAutorefresh()">
+                    {% include 'header/icons/icon-square-checked.html' %}
+                    <input type="hidden" checked id="autorefresh-switch">
+                </span>`;
+        }
+      }
+
+      $(document).ready(function () {
+        $("#autorefresh-switch").on("change", function () {
+          toggleAutorefresh();
+        });
+
+        autoRefreshEnabled = document.getElementById("autorefresh-switch").hasAttribute('checked');
+        if (autoRefreshEnabled) {
+          autoRefreshInterval = setInterval(updateJobsData, 5000);
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+
+        let defaultState = urlParams.get("state") || "all";
+        $("#state-filter").val(defaultState);
+
+        let defaultQueue = urlParams.get("queue_name") || "all";
+        $("#queue-name-filter").val(defaultQueue);
+      });
+
+      function getState() {
+        let selectedState = $("#state-filter").val();
+        return selectedState;
+      }
+
+      function getQueue() {
+        let selectedQueue = $("#queue-name-filter").val();
+        return selectedQueue;
+      }
+
+      function filterJobsByState() {
+        let selectedState = $("#state-filter").val();
+        updateJobsData(selectedState);
+      }
+
+      function filterJobsByQueue() {
+        let selectedQueue = $("#queue-name-filter").val();
+        updateJobsData(selectedQueue);
+      }
+
+      function updateJobsData() {
+        if (autoRefreshEnabled) {
+          let selectedState = $("#state-filter").val();
+          let selectedQueue = $("#queue-name-filter").val();
+          $.ajax({
+            url:
+              baseurl +
+              "/jobs/json?state=" +
+              selectedState +
+              "&queue_name=" +
+              selectedQueue +
+              "&page=" +
+              page,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+              updateJobsTable(data);
+            },
+            error: function (error) {
+              console.error("Error fetching jobs data: ", error);
+              showErrorNotification("Error fetching jobs data");
+            },
+          });
+        }
+      }
+
+      function updateJobsTable(data) {
+        var tableBody = $("#table-content");
+        tableBody.empty();
+
+        $.each(data, function (index, queue) {
+          $.each(
+            [
+              "scheduled",
+              "queued",
+              "started",
+              "failed",
+              "deferred",
+              "finished",
+            ],
+            function (stateIndex, state) {
+              $.each(queue[state], function (jobIndex, job) {
+                var row = $("<div class='table-row'>");
+                var jobLink = $("<a>")
+                  .attr("href", baseurl + "/job/" + job.id)
+                  .text(job.id);
+                row.append($("<div>").append(jobLink));
+                row.append($("<div>").append(state));
+                row.append($("<div>").text(job.name));
+                var formattedDate = new Date(job.created_at).toLocaleString();
+                row.append($("<div>").text(formattedDate));
+
+                var optionsCell = $("<div>");
+                optionsCell.append(
+                  $("<button>")
+                    .text("Delete")
+                    .addClass("delete-button")
+                    .on("click", function () {
+                      deleteJob(job.id);
+                    })
+                );
+
+                if (state === "failed") {
+                  optionsCell.append($("<span>").addClass("button-spacer"));
+                  optionsCell.append(
+                    $("<button>")
+                      .text("Requeue")
+                      .addClass("requeue-button")
+                      .on("click", function () {
+                        requeueJob(job.id);
+                      })
+                  );
+                }
+                row.append(optionsCell);
+                tableBody.append(row);
+              });
+            }
+          );
+        });
+      }
+
+      function deleteJob(job_id) {
+        $.ajax({
+          url: baseurl + "/job/" + job_id,
+          type: "DELETE",
+          error: function (error) {
+            console.error("Error fetching job data: ", error);
+            showErrorNotification("Error deleting job");
+          },
+        });
+      }
+
+      function requeueJob(job_id) {
+        $.ajax({
+          url: baseurl + "/job/" + job_id + "/requeue",
+          type: "POST",
+          error: function (error) {
+            console.error("Error fetching job data: ", error);
+            showErrorNotification("Error requeueing job");
+          },
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const jobLinks = document.querySelectorAll("a[data-job-id]");
+        jobLinks.forEach((link) => {
+          const jobId = link.getAttribute("data-job-id");
+          link.href = `${baseurl}/job/${jobId}`;
+        });
+      });
+
+      if (autoRefreshEnabled) {
+        setInterval(updateJobsData, 5000);
+      }
+
+      let page = 1;
+
+      window.onload = function () {
+        updatePageNumber();
+      };
+
+      function nextPage() {
+        page += 1;
+        updatePageNumber();
+        updateJobsData();
+      }
+
+      function previousPage() {
+        if (page > 1) {
+          page -= 1;
+          updatePageNumber();
+          updateJobsData();
+        }
+      }
+
+      function updatePageNumber() {
+        // document.getElementById("page-number").textContent = page;
+      }
+    </script>
+  </body>
 </html>

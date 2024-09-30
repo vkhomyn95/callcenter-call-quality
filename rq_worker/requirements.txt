@@ -1,4 +1,0 @@
-rq
-redis
-rq-dashboard
-python-dotenv

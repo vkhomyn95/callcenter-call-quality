@@ -1,30 +1,18 @@
 version: "3.9"
 
 services:
-  rq_worker:
-    build:
-      context: .
-      dockerfile: rq_worker/Dockerfile
-    container_name: rq_worker
-    env_file:
-      - ".env"
-    network_mode: host
-    restart: always
-    command: >
-      sh -c "python main.py & rq-dashboard --redis-url ${REDIS_URL} --port ${RQ_DASHBOARD_PORT}"
-
   celery-worker:
     build:
       context: .
       dockerfile: celery_worker/Dockerfile
     container_name: celery_worker
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: all
+#              capabilities: [ gpu ]
     env_file:
       - ".env"
     network_mode: host
@@ -33,7 +21,8 @@ services:
       - "/stor:/stor"
     command: >
       sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=2 --pool=threads &
-             celery --app celery_worker.worker.start.celery flower --port=${CELERY_FLOWER_PORT}"
+             celery --app celery_worker.worker.start.celery flower --port=${CELERY_FLOWER_PORT} &
+             python celery_worker/hook/start.py"
 
   communicator:
     build:
