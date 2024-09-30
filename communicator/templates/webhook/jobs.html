@@ -77,18 +77,24 @@
                 </div>
 
                 {% set headings = [
-                    {'name': 'ID'},
+                    {'name': 'ID', 'id': True},
                     {'name': 'Статус', 'status': True},
-                    {'name': 'Назва'},
+                    {'name': 'Назва', 'named': True},
                     {'name': 'Дата'},
                     {'name': 'Дії', 'actions': True},
                 ] %}
 
                 <div class="table-header">
                    {% for heading in headings %}
-                    <div style="width: {% if heading.actions %}50px{% else %}{% if heading.status %}10%{% else %}18%{% endif %}{% endif %};">
+                    {% if heading.named %}
+                     <div style="width: 44%">
+                         {{ heading.name }}
+                     </div>
+                    {% else %}
+                    <div style="width: {% if heading.actions %}50px{% else %}{% if heading.status %}10%{% else %}{% if heading.id %}19%{% else %}22%{% endif %}{% endif %}{% endif %};">
                         {{ heading.name }}
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
 
@@ -102,10 +108,10 @@
                             <div style="width: 10%">
                               {{ state }}
                             </div>
-                            <div style="width: 18%">
+                            <div style="width: 45%">
                               {{ job.name }}
                             </div>
-                            <div style="width: 18%">
+                            <div style="width: 20%">
                               {{ job.created_at }}
                             </div>
 
@@ -151,7 +157,7 @@
       }
 
       function showErrorNotification(message) {
-        const notification = documenr.createElement('div');
+        const notification = document.createElement('div');
         notification.className = 'error-notification';
         notification.textContent = message;
 
@@ -271,15 +277,16 @@
                 var jobLink = $("<a>")
                   .attr("href", baseurl + "/job/" + job.id)
                   .text(job.id);
-                row.append($("<div>").append(jobLink));
-                row.append($("<div>").append(state));
-                row.append($("<div>").text(job.name));
+                row.append($("<div style='width: 19%'>").append(jobLink));
+                row.append($("<div style='width: 10%'>").append(state));
+                row.append($("<div style='width: 44%'>").text(job.name));
                 var formattedDate = new Date(job.created_at).toLocaleString();
                 row.append($("<div>").text(formattedDate));
 
                 var optionsCell = $("<div>");
                 optionsCell.append(
                   $("<button>")
+
                     .text("Delete")
                     .addClass("delete-button")
                     .on("click", function () {
