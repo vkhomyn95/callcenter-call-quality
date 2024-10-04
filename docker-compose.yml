@@ -20,8 +20,7 @@ services:
     volumes:
       - "/stor:/stor"
     command: >
-      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=2 --pool=threads &
-             celery --app celery_worker.worker.worker.celery flower --port=${FLOWER_PORT} &
+      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads &
              python celery_worker/hook/start.py"
 
   communicator:
