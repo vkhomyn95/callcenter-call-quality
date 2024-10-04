@@ -72,6 +72,7 @@ class CallbackTask(Task):
                     "status": "FAILURE",
                     "talk_record_id": talk_record_id,
                     "user_id": user_id,
+                    "task_id": task_id,
                     "error": str(exc)
                 }
             )
@@ -155,6 +156,7 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
         "user_id": user_id,
         "talk_record_id": talk_record_id,
         "transcription": transcription_results,
+        "unique_uuid": unique_uuid,
         "origin": origin
     }
 

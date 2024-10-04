@@ -42,24 +42,24 @@ class RecognitionConfigurationSchema(BaseModel):
 
 
 class UserSchema(BaseModel):
-
-    id: Optional[int]
-    created_date: Optional[datetime]
-    updated_date: Optional[datetime]
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    phone: Optional[str]
-    username: Optional[str]
-    password: Optional[str]
-    api_key: Optional[str]
-    uuid: Optional[str]
-    audience: Optional[str]
-    role_id: Optional[int]
-    tariff: Optional[TariffSchema]
-    recognition: Optional[RecognitionConfigurationSchema]
-    role: Optional[UserRoleSchema]
+    id: Optional[int] = None  # Ensuring the default is None
+    created_date: Optional[datetime] = None
+    updated_date: Optional[datetime] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    api_key: Optional[str] = None
+    uuid: Optional[str] = None
+    audience: Optional[str] = None
+    role_id: Optional[int] = None
+    tariff: Optional["TariffSchema"] = None
+    recognition: Optional["RecognitionConfigurationSchema"] = None
+    role: Optional["UserRoleSchema"] = None
 
     class Config:
         from_attributes = True
         extra = 'ignore'
+

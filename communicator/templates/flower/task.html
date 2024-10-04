@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+         <div class="breadcrumb">
+            <span class="breadcrumb-navigation flex flex-align-center" onclick="returnPrevious()">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </span>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Задача
+                </div>
+            </div>
+        </div>
+        <div class="content flex flex-direction-row">
+            <div class="card-wrapper">
+                <div class="card" style="height: 100%">
+                    <div class="p-20">
+                        <span class="card-title">
+                            Загальна інформація
+                        </span>
+                    </div>
+                    <div class="card-border"></div>
+                    <div class="card-body">
+                        <div class="card-body-wrapper pt-20">
+                            <div class="flex flex-direction-column py-20">
+                                <div class="mb-10">Ідентифікатор</div>
+                                <div class="recognition-label">{{ task.name }} | {{ task.uuid }}</div>
+                            </div>
+                            <div class="flex flex-direction-column py-20 mt-10">
+                                <div class="mb-10">Статус</div>
+                                <div class="recognition-label">
+                                  {% if task.state == "SUCCESS" %}
+                                  <span>{{ task.state }}</span>
+                                  {% elif task.state == "FAILURE" %}
+                                  <span>{{ task.state }}</span>
+                                  {% else %}
+                                  <span>{{ task.state }}</span>
+                                  {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex flex-direction-column py-20 mt-10">
+                                <div class="mb-10">args</div>
+                                <div class="recognition-label" style="white-space: normal">
+                                  {{ task.args }}
+                                </div>
+                            </div>
+                            <div class="flex flex-direction-column py-20 mt-10">
+                                <div class="mb-10">kwargs</div>
+                                <div class="recognition-label" style="white-space: normal">
+                                  {{ task.kwargs }}
+                                </div>
+                            </div>
+                            <div class="flex flex-direction-column py-20 mt-10">
+                                  <div class="mb-10">Результат</div>
+                                  <div class="recognition-label" style="white-space: normal">
+                                    {{ task.result }}
+                                  </div>
+                            </div>
+                            {% for name in task._fields %}
+                              {% if name not in ['name', 'uuid', 'state', 'args', 'kwargs', 'result'] and task.name %}
+                              <div class="flex flex-direction-column py-20 mt-10">
+                                  <div class="mb-10">{{ name|humanize }}</div>
+                                  <div class="recognition-label">
+                                    {% if name in ['sent', 'received', 'started', 'succeeded', 'retried', 'timestamp', 'failed', 'revoked'] %}
+                                    {{ task[name]|humanize }}
+                                    {% elif name == 'worker' %}
+                                    <a
+                                        href="{{ url_for('flower_worker', worker_id=task.worker.hostname) }}">{{ task.worker.hostname }}</a>
+                                    {% elif name == 'traceback' %}
+                                    <pre class="exc_info">{{ task.traceback }}</pre>
+                                    {% elif name in ['parent_id', 'root_id'] %}
+                                    <a
+                                        href="{{ url_for('flower_task', task_id=task[name]) }}">{{ task[name] }}</a>
+                                    {% elif name == 'children' %}
+                                      {% for child in task[name] %}
+                                        <a href="{{ url_for('flower_task', task_id=child.id) }}">{{ child.id }}</a>
+                                        <br>
+                                      {% endfor %}
+                                    {% else %}
+                                      {{ task[name] }}
+                                    {% endif %}
+                                  </div>
+                              </div>
+                              {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    function returnPrevious() {
+        if (!document.referrer) {
+            window.location.href = '/flowers/tasks'
+        } else if (!document.referrer.includes("tasks")) {
+            window.location.href = '/flowers/tasks'
+        } else {
+            window.location.href = document.referrer;
+        }
+    }
+</script>
+</html>

@@ -34,7 +34,7 @@ class ElasticDatabase:
             criteria.append({"match": {"user_id": user_id}}) if user_id else None
 
             query = {
-                "_source": ["_id", "received_date", "@timestamp", "num_channels", "duration", "status", "task_id"],
+                "_source": ["_id", "received_date", "@timestamp", "num_channels", "duration", "status", "task_id", "unique_uuid"],
                 "query": {
                     # "range": {
                     #     "result.date_done": {
@@ -46,6 +46,9 @@ class ElasticDatabase:
                         "must": criteria
                     }
                 },
+                "sort": [
+                    {"@timestamp": {"order": "desc"}}
+                ],
                 "from": offset,
                 "size": limit
             }
@@ -104,6 +107,7 @@ class ElasticDatabase:
                     "status",
                     "task_id",
                     "user_id",
+                    "unique_uuid",
                     "transcription"
                 ],
                 "query": {
@@ -115,11 +119,11 @@ class ElasticDatabase:
                     # }
                     "bool": {
                         "must": [
-                            {
-                                "match": {
-                                    "status": "SUCCESS"
-                                }
-                            },
+                            # {
+                            #     "match": {
+                            #         "status": "SUCCESS"
+                            #     }
+                            # },
                             {
                                 "match": {
                                     "task_id": task_id
@@ -162,10 +166,16 @@ class ElasticDatabase:
                         ]
                     }
                 },
+                "size": 0,
                 "aggs": {
                     "total_duration_today": {
                         "sum": {
                             "field": "duration"
+                        }
+                    },
+                    "total_transcriptions_today": {
+                        "value_count": {
+                            "field": "user_id"
                         }
                     }
                 }
@@ -191,10 +201,16 @@ class ElasticDatabase:
                         ]
                     }
                 },
+                "size": 0,
                 "aggs": {
                     "total_duration_this_week": {
                         "sum": {
                             "field": "duration"
+                        },
+                    },
+                    "total_transcriptions_week": {
+                        "value_count": {
+                            "field": "user_id"
                         }
                     }
                 }
@@ -220,10 +236,16 @@ class ElasticDatabase:
                         ]
                     }
                 },
+                "size": 0,
                 "aggs": {
                     "total_duration_this_month": {
                         "sum": {
                             "field": "duration"
+                        }
+                    },
+                    "total_transcriptions_month": {
+                        "value_count": {
+                            "field": "user_id"
                         }
                     }
                 }
@@ -236,9 +258,18 @@ class ElasticDatabase:
 
             # Extract the sum of durations
             return {
-                "today": result_today['aggregations']['total_duration_today']['value'],
-                "week": result_this_week['aggregations']['total_duration_this_week']['value'],
-                "month": result_this_month['aggregations']['total_duration_this_month']['value']
+                "today": {
+                    "duration": result_today['aggregations']['total_duration_today']['value'],
+                    "records": result_today['aggregations']['total_transcriptions_today']['value'],
+                },
+                "week": {
+                    "duration": result_this_week['aggregations']['total_duration_this_week']['value'],
+                    "records": result_this_week['aggregations']['total_transcriptions_week']['value'],
+                },
+                "month": {
+                    "duration": result_this_month['aggregations']['total_duration_this_month']['value'],
+                    "records": result_this_month['aggregations']['total_transcriptions_month']['value']
+                }
             }
 
         except Exception as e:

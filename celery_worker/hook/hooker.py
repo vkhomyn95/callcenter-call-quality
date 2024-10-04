@@ -80,5 +80,5 @@ def send_webhook(*, webhook_payload: HookerRequestPayload) -> Job:
         webhook_payload,
         retry=Retry(10, 60),
         job_timeout=20,
-        job_id=f"{str(uuid.uuid4())}"
+        job_id=f"{webhook_payload['payload']['task_id']}"
     )

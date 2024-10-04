@@ -1,10 +1,11 @@
+import uuid
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
 
 from starlette.requests import Request
 from werkzeug.security import generate_password_hash
 
-from communicator.database import UserSchema, RecognitionConfiguration, Tariff, User
+from communicator.database import UserSchema, RecognitionConfiguration, Tariff, User, UserRole
 from communicator.database.database import get_db
 from communicator.utils.crud import load_user_by_uuid, load_user_by_username, insert_user, increment_user_tariff
 from communicator.variables import variables
@@ -67,13 +68,18 @@ async def create_user(
     if user is not None:
         return {"success": False, "data": "User already exists with defined email or username"}
 
-    user_schema = UserSchema(**payload)
+    user_schema = UserSchema(**{k: v for k, v in payload.items() if k not in ['id', 'tariff', 'role', 'recognition', 'api_key']})
     user_schema.role_id = 2
     user_schema.password = generate_password_hash(payload["password"])
+    user_schema.api_key = str(uuid.uuid4())
     user_schema.tariff = Tariff()
     user_schema.recognition = RecognitionConfiguration()
 
-    inserted_user = insert_user(db, User(**user_schema.model_dump()))
+    user = User(**user_schema.dict(exclude_none=True, exclude=['tariff', 'recognition']))
+    user.tariff = Tariff()
+    user.recognition = RecognitionConfiguration()
+
+    inserted_user = insert_user(db, user)
 
     return {
         "success": True,
@@ -81,7 +87,7 @@ async def create_user(
     }
 
 
-@router.post("/<uuid>/license")
+@router.post("/{uuid}/license")
 def increment_user_license(
         uuid: str,
         access_token: str = Query(None, alias="access_token"),

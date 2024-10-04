@@ -21,6 +21,7 @@ class CustomElasticsearchBackend(ElasticsearchBackend):
             'user_id': value["result"]["user_id"] if "user_id" in value["result"] else None,
             'talk_record_id': value["result"]["talk_record_id"] if "talk_record_id" in value["result"] else None,
             'transcription': value["result"]["transcription"] if "transcription" in value["result"] else None,
+            'unique_uuid': value["result"]["unique_uuid"] if "unique_uuid" in value["result"] else None,
             'received_date': value["result"]["received_date"] if "received_date" in value["result"] else None,
             'transcription_date': value["result"]["transcription_date"] if "transcription_date" in value["result"] else None,
             '@timestamp': '{}Z'.format(datetime.now(timezone.utc).isoformat()[:-9]),

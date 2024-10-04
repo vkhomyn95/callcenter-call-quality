@@ -21,7 +21,7 @@ services:
       - "/stor:/stor"
     command: >
       sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=2 --pool=threads &
-             celery --app celery_worker.worker.start.celery flower --port=${CELERY_FLOWER_PORT} &
+             celery --app celery_worker.worker.worker.celery flower --port=${FLOWER_PORT} &
              python celery_worker/hook/start.py"
 
   communicator:

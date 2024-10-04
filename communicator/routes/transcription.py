@@ -1,9 +1,10 @@
 import json
+import os
 
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse, FileResponse
 from starlette.templating import Jinja2Templates
 
 from communicator.database import elastic
@@ -108,15 +109,20 @@ async def transcription(request: Request, transcription_id: str, db: Session = D
     else:
         searched_recognition = elastic.load_recognition_by_id(session_user["id"], transcription_id)
 
+    if not searched_recognition:
+        return RedirectResponse(url="/404", status_code=404)
+
     merged_recognitions = []
     timestamps = set()
     user = load_user_by_id(db, searched_recognition["user_id"]) if searched_recognition is not None else None
 
-    for recognition in searched_recognition["transcription"]:
-        for chunk in recognition["chunks"]:
-            merged_recognitions.append(chunk)
-            timestamps.add(chunk["timestamp"][0])
-    merged_recognitions.sort(key=lambda x: x['timestamp'][0])
+    if searched_recognition["transcription"]:
+        for recognition in searched_recognition["transcription"]:
+            if recognition:
+                for chunk in recognition["chunks"]:
+                    merged_recognitions.append(chunk)
+                    timestamps.add(chunk["timestamp"][0])
+        merged_recognitions.sort(key=lambda x: x['timestamp'][0])
     searched_recognition["result"] = merged_recognitions
     searched_recognition["user"] = user
 
@@ -130,9 +136,25 @@ async def transcription(request: Request, transcription_id: str, db: Session = D
     )
 
 
-@router.get('/{transcription_id}/audio', response_class=HTMLResponse)
-async def transcription_audio(request: Request, transcription_id: str):
-    pass
+@router.get('/{transcription_id}/audio/{channel}', response_class=HTMLResponse)
+async def transcription_audio(request: Request, transcription_id: str, channel: int):
+    session_user = await get_user(request)
+
+    if not session_user:
+        return RedirectResponse(url="/login/", status_code=303)
+
+    filename = f"{transcription_id}_{channel}.wav"
+
+    # Construct the full file path based on the audio directory and filename
+    file_path = os.path.join(variables.file_dir, filename)
+
+    # Check if the file exists
+    if os.path.exists(file_path):
+        # Serve the file using FileResponse
+        return FileResponse(file_path, media_type='audio/wav', filename=filename)
+    else:
+        # Handle file not found (you can return a 404 or any other appropriate response)
+        return RedirectResponse(url="/404", status_code=404)
 
 
 async def get_user(request: Request) -> dict:
@@ -160,3 +182,13 @@ async def is_admin(request: Request):
     """
     user_data = await get_user(request)
     return user_data["role"]["name"] == 'admin'
+
+
+def humanize_transcription_time_range(time_range):
+    start_seconds, end_seconds = time_range
+    start_minutes, start_seconds = divmod(int(start_seconds), 60)
+    end_minutes, end_seconds = divmod(int(end_seconds if end_seconds else start_seconds), 60)
+    return f"{start_minutes}:{start_seconds:02d} - {end_minutes}:{end_seconds:02d}"
+
+
+templates.env.filters['humanize_transcription_time_range'] = humanize_transcription_time_range

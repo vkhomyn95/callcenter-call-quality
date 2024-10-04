@@ -7,7 +7,8 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 
-from communicator.utils.webhook_jobs import get_jobs, QueueJobRegistryStats, JobDataDetailed, get_job
+from communicator.utils.webhook_jobs import get_jobs, QueueJobRegistryStats, JobDataDetailed, get_job, delete_job_id, \
+    requeue_job_id
 from communicator.utils.webhook_queues import (
     QueueRegistryStats,
     get_job_registry_amount, delete_jobs_for_queue,
@@ -226,7 +227,7 @@ async def hook_jobs(
                 },
             )
         except Exception as e:
-            # logger.exception("An error occurred reading jobs data template:", e)
+            logging.error("An error occurred reading jobs data template:", e)
             raise HTTPException(
                 status_code=500,
                 detail="An error occurred reading jobs data template",
@@ -261,7 +262,7 @@ async def read_jobs(
 
             return job_data
         except Exception as e:
-            # logger.exception("An error occurred reading jobs data json:", e)
+            logging.error("An error occurred reading jobs data json:", e)
             raise HTTPException(
                 status_code=500, detail="An error occurred reading jobs data json"
             )
@@ -287,13 +288,6 @@ async def get_job_data(job_id: str, request: Request):
     if await is_admin(request):
         try:
             job = get_job(variables.redis_url, job_id)
-
-            # if job.exc_info:
-            #     css = HtmlFormatter().get_style_defs()
-            #     col_exc_info = highlight(
-            #         job.exc_info, Python2TracebackLexer(), HtmlFormatter()
-            #     )
-            # else:
             css = None
             col_exc_info = None
 
@@ -315,9 +309,63 @@ async def get_job_data(job_id: str, request: Request):
                 },
             )
         except Exception as e:
-            # logger.exception("An error occurred fetching a specific job:", e)
+            logging.error("An error occurred fetching a specific job:", e)
             raise HTTPException(
                 status_code=500, detail="An error occurred fetching a specific job"
+            )
+    else:
+        return RedirectResponse(url="/login/", status_code=303)
+
+
+@router.delete("/job/{job_id}")
+async def delete_job(job_id: str, request: Request):
+    """
+    Handles the user management page for administrators.
+
+    Returns:
+        HTMLResponse: The rendered HTML of the user management page if the user is an admin.
+                      Redirects to the login page if no user is in session.
+                      Redirects to the user's personal page if the user is not an admin.
+    """
+    session_user = await get_user(request)
+
+    if not session_user:
+        return RedirectResponse(url="/login/", status_code=303)
+
+    if await is_admin(request):
+        try:
+            delete_job_id(variables.redis_url, job_id=job_id)
+        except Exception as e:
+            logging.error("An error occurred while deleting a job:", e)
+            raise HTTPException(
+                status_code=500, detail="An error occurred delete a specific job"
+            )
+    else:
+        return RedirectResponse(url="/login/", status_code=303)
+
+
+@router.post("/job/{job_id}/requeue")
+async def requeue_job(job_id: str, request: Request):
+    """
+    Handles the user management page for administrators.
+
+    Returns:
+        HTMLResponse: The rendered HTML of the user management page if the user is an admin.
+                      Redirects to the login page if no user is in session.
+                      Redirects to the user's personal page if the user is not an admin.
+    """
+    session_user = await get_user(request)
+
+    if not session_user:
+        return RedirectResponse(url="/login/", status_code=303)
+
+    if await is_admin(request):
+        try:
+            requeue_job_id(variables.redis_url, job_id=job_id)
+        except Exception as e:
+            logging.error("An error occurred while requeue a job:", e)
+            raise HTTPException(
+                status_code=500, detail="An error occurred requeue a specific job"
             )
     else:
         return RedirectResponse(url="/login/", status_code=303)

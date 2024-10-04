@@ -17,8 +17,8 @@
     height: calc(100% - 91px);
 }
 .card-body-wrapper {
-    overflow: auto;
-    height: 100%;
+  overflow: auto;
+  height: 100%;
 }
 .content-wrapper {
   border-radius: 20px;

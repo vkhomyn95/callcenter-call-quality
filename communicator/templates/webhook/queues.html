@@ -61,14 +61,14 @@
 
                 <div class="table-header">
                    {% for heading in headings %}
-                    <div style="width: {% if heading.actions %}50px{% else %}16%{% endif %};">
+                    <div style="width: {% if heading.actions %}70px{% else %}15.8%{% endif %};">
                         {{ heading.name }}
                     </div>
                     {% endfor %}
                 </div>
 
                 <div class="content-wrapper-info">
-                    <div class="table-content">
+                    <div class="table-content" id="table-content">
                         {% if not queue_data %}
                         <div class="table-row">
                             <div style="width: 100%; text-align: center">
@@ -83,14 +83,14 @@
                                 {{ queue_stats.queue_name }}
                               </a>
                             </div>
-                            <div style="width: 17%">
+                            <div style="width: 16%">
                                 <a
                                     href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=queued"
                                   >
                                     {{ queue_stats.queued }}
                                   </a>
                             </div>
-                            <div style="width: 17%">
+                            <div style="width: 16%">
                               <a
                                 href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=started"
                               >
@@ -104,14 +104,14 @@
                                 {{ queue_stats.failed }}
                               </a>
                             </div>
-                            <div style="width: 17%">
+                            <div style="width: 15%">
                               <a
                                 href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=deferred"
                               >
                                 {{ queue_stats.deferred }}
                               </a>
                             </div>
-                            <div style="width: 17%">
+                            <div style="width: 15%">
                               <a
                                 href="{{baseurl}}/webhooks/jobs?queue={{ queue_stats.queue_name }}&state=finished"
                               >
@@ -121,7 +121,7 @@
 
                             <div style="width: 50px">
                                 <div class="is-flex-direction-row is-align-content-center">
-                                    <a onclick="deleteJobsInQueue('{{ queue_stats.queue_name }}')" style="color: #00475A">
+                                    <a onclick="deleteJobsInQueue('{{ queue_stats.queue_name }}')" style="color: #00475A; cursor: pointer">
                                        {% include 'header/icons/icon-delete.html' %}
                                     </a>
                                 </div>
@@ -142,10 +142,22 @@
       const host = window.location.host;
       const prefix = '{{ prefix }}';
       const baseurl = protocol + '://' + host + prefix;
+
       function showNotification(message) {
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.textContent = message;
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast success">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
 
         document.body.appendChild(notification);
 
@@ -155,9 +167,20 @@
       }
 
       function showErrorNotification(message) {
-        const notification = documenr.createElement('div');
-        notification.className = 'error-notification';
-        notification.textContent = message;
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast error">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
 
         document.body.appendChild(notification);
 
@@ -170,8 +193,10 @@
         autoRefreshEnabled = !autoRefreshEnabled;
         if (autoRefreshEnabled) {
           autoRefreshInterval = setInterval(updateQueuesData, 5000);
+          showNotification('Autorefresh enabled');
         } else {
           clearInterval(autoRefreshInterval);
+          showNotification('Autorefresh disabled');
         }
 
         const activeSpan = document.getElementById('toggleActive');
@@ -229,17 +254,17 @@
       }
 
       function updateQueuesTable(data) {
-        var tableBody = $('#queues tbody');
+        var tableBody = $('#table-content');
 
         if (tableBody.children().length > 0) {
           tableBody.empty();
         }
 
         $.each(data, function (index, queue_stats) {
-          var row = $('<tr>');
-          row.append($('<td>').text(queue_stats.queue_name));
+          var row = $('<div class="table-row">');
+          row.append($('<div style="width: 17%">').text(queue_stats.queue_name));
           row.append(
-            $('<td>').append(
+            $('<div style="width: 16%">').append(
               $('<a>')
                 .attr(
                   'href',
@@ -252,7 +277,7 @@
             )
           );
           row.append(
-            $('<td>').append(
+            $('<div style="width: 16%">').append(
               $('<a>')
                 .attr(
                   'href',
@@ -265,7 +290,7 @@
             )
           );
           row.append(
-            $('<td>').append(
+            $('<div style="width: 16%">').append(
               $('<a>')
                 .attr(
                   'href',
@@ -278,7 +303,7 @@
             )
           );
           row.append(
-            $('<td>').append(
+            $('<div style="width: 17%">').append(
               $('<a>')
                 .attr(
                   'href',
@@ -291,7 +316,7 @@
             )
           );
           row.append(
-            $('<td>').append(
+            $('<div style="width: 15%">').append(
               $('<a>')
                 .attr(
                   'href',
@@ -304,14 +329,24 @@
             )
           );
           row.append(
-            $('<td>').append(
-              $('<button>')
-                .text('Delete')
-                .addClass('delete-button')
-                .on('click', function () {
-                  deleteJobsInQueue(queue_stats.queue_name);
-                })
-            )
+            $("<a style='cursor:pointer;'>")
+              .html(`
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_1_1034)">
+                    <path d="M2.5 4.54465H13.5M3.1875 4.54465L3.875 13.2113C3.875 13.5944 4.01987 13.9618 4.27773 14.2327C4.53559 14.5036 4.88533 14.6558 5.25 14.6558H10.75C11.1147 14.6558 11.4644 14.5036 11.7223 14.2327C11.9801 13.9618 12.125 13.5944 12.125 13.2113L12.8125 4.54465M5.9375 4.54465V2.37798C5.9375 2.18644 6.00993 2.00274 6.13886 1.8673C6.2678 1.73185 6.44266 1.65576 6.625 1.65576H9.375C9.55734 1.65576 9.7322 1.73185 9.86114 1.8673C9.99007 2.00274 10.0625 2.18644 10.0625 2.37798V4.54465M6.625 8.15576L9.375 11.0447M9.375 8.15576L6.625 11.0447" stroke="#00475A" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_1_1034">
+                    <rect width="16" height="16" fill="white" transform="translate(0 0.00439453)"/>
+                    </clipPath>
+                    </defs>
+                </svg>
+
+            `)
+            .addClass('delete-button')
+            .on('click', function () {
+              deleteJobsInQueue(queue_stats.queue_name);
+            })
           );
           tableBody.append(row);
         });
@@ -324,6 +359,11 @@
       if (autoRefreshEnabled) {
         setInterval(updateQueuesData, 5000);
       }
+      const removeToast = (toast) => {
+          toast.classList.add("hide")
+          if (toast.timeoutId) clearTimeout(toast.timeoutId)
+          setTimeout(() => toast.remove(), 500)
+     }
     </script>
   </body>
 </html>

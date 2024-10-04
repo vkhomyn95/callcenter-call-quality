@@ -7,7 +7,7 @@
 :root {
   --dark: #78fad1;
   --light: #ffffff;
-  --success: #0abf30;
+  --success: rgba(0, 131, 17, 0.35);
   --error: #e24d4c;
   --warning: #e9bd0c;
   --info: #3498db;
@@ -22,7 +22,6 @@ body {
 /* Firefox */
 * {
   scrollbar-width: auto;
-  scrollbar-color: darkgrey #ffffff;
 }
 
 /* Chrome, Edge, and Safari */
@@ -31,24 +30,24 @@ body {
 }
 
 *::-webkit-scrollbar-track {
-  background: rgba(3, 76, 140, 0.05);
-  &:hover {
-    background: rgba(3, 76, 140, 0.1);
-  }
+  background: rgba(3, 76, 140, 0.05)!important;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-track:hover {
+    background: rgba(3, 76, 140, 0.1)!important;
 }
 
 *::-webkit-scrollbar-thumb {
   background: rgba(3, 76, 140, 0.2);
   border-radius: 10px;
   background-clip: padding-box;
-
-  &:hover {
+}
+*::-webkit-scrollbar-thumb:hover {
     background: rgba(3, 76, 140, 0.3);
-  }
-
-  &:active {
+}
+*::-webkit-scrollbar-thumb:active {
     background: rgba(0, 75, 143, 1);
-  }
 }
 /* End apply scrollbar communicator styles */
 audio {
@@ -279,6 +278,9 @@ input[type="radio"] {
 .mb-40 {
     margin-bottom: 30px;
 }
+.mt-10 {
+    margin-top: 10px;
+}
 .mt-20 {
     margin-top: 20px;
 }
@@ -373,7 +375,7 @@ select {
     display: none;
 }
 .tabs {
-    padding: 0 20px;
+    padding: 0 20px 0 0;
     display: flex;
     align-items: center;
 }
@@ -470,6 +472,10 @@ select {
 .toast.error {
     background: #FFE8E8;
     border: 1px solid #A82525;
+}
+.toast.success {
+    background: #fcfffc;
+    border: 1px solid var(--success);
 }
 .toast.success::before,
 .btn#success {
@@ -581,7 +587,16 @@ select {
     border-radius: 4px;
     cursor: pointer;
 }
-
+.card-wrapper {
+    display: flex;
+    position: absolute;
+    overflow-y: auto;
+    width: calc(100% - 40px);
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+}
 .footer {
     position: absolute;
     display: flex;
@@ -612,4 +627,26 @@ select {
 }
 .pointer {
     cursor: pointer;
+}
+pre.exc_info {
+    color: #555;
+    padding-left: 5px;
+    border-left: 2px solid darkorange;
+    background-color: lightgoldenrodyellow;
+    white-space: pre-wrap;
+    font-size: 14px;
+    font-weight: 400;
+}
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+.bg-success {
+    background-color: #28a745 !important;
+}
+.bg-secondary {
+    background-color: #6c757d !important;
+}
+.badge {
+    padding: 0.65em 0.35em;
+    color: #ffffff;
 }

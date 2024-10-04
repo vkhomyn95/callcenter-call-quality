@@ -58,6 +58,10 @@ class Variables:
         "CELERY_BROKER",
         "amqp://user:password@localhost:5672/"
     )
+    celery_broker_api: str = os.getenv(
+        "CELERY_BROKER_API",
+        "http://user:password@localhost:15672/api/"
+    )
     celery_backend: str = os.getenv(
         "CELERY_BACKEND",
         "elasticsearch://localhost:9200/transcriptions"
@@ -103,6 +107,52 @@ class Variables:
         "/stor/data/transcription/"
     )
     base_dir = os.path.dirname(__file__)
+
+    # Flower
+    purge_offline_workers: int = os.getenv(
+        "PURGE_OFFLINE_WORKERS",
+        None
+    )
+    inspect_timeout: float = float(os.getenv(
+        "INSPECT_TIMEOUT",
+        1000.0
+    ))
+    flower_db: str = os.getenv(
+        "FLOWER_DATABASE",
+        "flower"
+    )
+    flower_persistent: bool = bool(os.getenv(
+        "FLOWER_PERSISTENT",
+        False
+    ))
+    flower_state_save_interval: int = int(os.getenv(
+        "FLOWER_STATE_SAVE_INTERVAL",
+        0
+    ))
+    flower_enable_events: bool = bool(os.getenv(
+        "FLOWER_ENABLE_EVENTS",
+        True
+    ))
+    flower_max_workers: int = int(os.getenv(
+        "FLOWER_MAX_WORKERS",
+        5000
+    ))
+    flower_max_tasks: int = int(os.getenv(
+        "FLOWER_MAX_TASKS",
+        100000
+    ))
+    flower_unix_socket: str = os.getenv(
+        "FLOWER_UNIX_SOCKET",
+        ""
+    )
+    flower_address: str = os.getenv(
+        "FLOWER_ADDRESS",
+        ""
+    )
+    flower_port: int = int(os.getenv(
+        "FLOWER_PORT",
+        5555
+    ))
 
 
 variables = Variables()

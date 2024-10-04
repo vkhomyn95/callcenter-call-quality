@@ -59,7 +59,7 @@
                                             type="text"
                                             id="task_id"
                                             name="task_id"
-                                            value="{{ filter.task_id }}"
+                                            value="{{ filter.task_id if filter.task_id else '' }}"
                                             autocomplete="off"
                                     />
                                 </div>
@@ -69,7 +69,7 @@
                                 {% include 'header/icons/icon-filter-clear.html' %}
                                 <span style="margin-left: 10px">Скинути</span>
                             </button>
-                            <button type="submit" class="button button-primary ml-15">
+                            <button class="button button-primary ml-15" onclick="filterTranscriptions()">
                                 {% include 'header/icons/icon-filter.html' %}
                                 <span style="margin-left: 10px">Фільтрувати</span>
                             </button>
@@ -96,6 +96,13 @@
 
                 <div class="content-wrapper-info">
                     <div class="table-content">
+                        {% if not recognitions %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Немає транскрипцій
+                            </div>
+                        </div>
+                        {% endif %}
                         {% for recognition in recognitions %}
                         <div class="table-row">
                             <div style="width: 19%">{{ recognition.received_date }}</div>
@@ -126,12 +133,47 @@
     function resetForm() {
         event.preventDefault();
         document.getElementById('task_id').value = "";
-        document.getElementById('extension').value = "";
-        document.getElementById('campaign_id').value = "";
-        const uId = document.getElementById('user_id');
-        if (uId !== null)
-            uId.value = "";
+        document.getElementById('user_id').value = 0;
         document.getElementById('filterForm').submit();
+    }
+
+    function filterTranscriptions() {
+        event.preventDefault();
+        let userId = document.getElementById('user_id');
+        let taskId = document.getElementById('task_id');
+        if (!userId.value) {
+            userId.value = 0;
+        }
+         if (userId.value === 0 && taskId.value === "") {
+            showErrorNotification("Invalid filter params");
+            return;
+         } else {
+             document.getElementById('filterForm').submit();
+
+         }
+    }
+
+    function showErrorNotification(message) {
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast error">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
     }
 </script>
 </body>

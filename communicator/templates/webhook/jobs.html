@@ -91,7 +91,7 @@
                          {{ heading.name }}
                      </div>
                     {% else %}
-                    <div style="width: {% if heading.actions %}60px{% else %}{% if heading.status %}10%{% else %}{% if heading.id %}19%{% else %}22%{% endif %}{% endif %}{% endif %};">
+                    <div style="width: {% if heading.actions %}60px{% else %}{% if heading.status %}10%{% else %}{% if heading.id %}19%{% else %}21%{% endif %}{% endif %}{% endif %};">
                         {{ heading.name }}
                     </div>
                     {% endif %}
@@ -100,6 +100,13 @@
 
                 <div class="content-wrapper-info">
                     <div class="table-content" id="table-content">
+                        {% if not job_data %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Немає задач
+                            </div>
+                        </div>
+                        {% endif %}
                         {% for queue in job_data %} {% for state in ["queued", "started", "failed", "deferred", "finished"] %} {% for job in queue[state] %}
                         <div class="table-row">
                             <div style="width: 19%">
@@ -117,11 +124,11 @@
 
                             <div style="width: 60px">
                                 <div class="is-flex-direction-row is-align-content-center">
-                                    <a onclick="deleteJob('{{ job.id }}')" style="color: #00475A">
+                                    <a onclick="deleteJob('{{ job.id }}')" style="color: #00475A; cursor:pointer;">
                                        {% include 'header/icons/icon-delete.html' %}
                                     </a>
                                     {% if state == "failed" %}
-                                        <a onclick="requeueJob('{{ job.id }}')" style="color: #00475A">
+                                        <a onclick="requeueJob('{{ job.id }}')" style="color: #00475A; cursor:pointer;">
                                            {% include 'header/icons/icon-requeue.html' %}
                                         </a>
                                     {% endif %}
@@ -133,6 +140,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="pagination">
+          <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+            <ul class="pagination-wrapper">
+                <li class="pagination-wrapper-option" onclick="previousPage()">
+                    <div class="pagination-wrapper-option-button" aria-label="Goto page 1">
+                        <svg height="20px" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M15.1667 8L11 12.1667L15.1667 16.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </li>
+                  <li class="pagination-wrapper-option ml-20">
+                    <div class="pagination-wrapper-option-button pagination-wrapper-option-button-active" >{{ page if page else 1 }}</div>
+                </li>
+                <li class="pagination-wrapper-option" onclick="nextPage()">
+                    <div class="pagination-wrapper-option-button" aria-label="Goto page 1" style="margin-left: 10px">
+                        <svg height="20px" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.2333 16L15.4 11.8333L11.2333 7.66667" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </li>
+            </ul>
+          </nav>
+        </div>
+
     </div>
 </div>
 
@@ -145,9 +177,20 @@
       const baseurl = protocol + '://' + host + prefix;
 
       function showNotification(message) {
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.textContent = message;
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast success">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
 
         document.body.appendChild(notification);
 
@@ -157,9 +200,20 @@
       }
 
       function showErrorNotification(message) {
-        const notification = document.createElement('div');
-        notification.className = 'error-notification';
-        notification.textContent = message;
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast error">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
 
         document.body.appendChild(notification);
 
@@ -172,8 +226,10 @@
         autoRefreshEnabled = !autoRefreshEnabled;
         if (autoRefreshEnabled) {
           autoRefreshInterval = setInterval(updateJobsData, 5000);
+          showNotification('Autorefresh enabled');
         } else {
           clearInterval(autoRefreshInterval);
+          showNotification('Autorefresh disabled');
         }
 
         const activeSpan = document.getElementById('toggleActive');
@@ -260,7 +316,6 @@
       function updateJobsTable(data) {
         var tableBody = $("#table-content");
         tableBody.empty();
-
         $.each(data, function (index, queue) {
           $.each(
             [
@@ -284,7 +339,7 @@
 
                 var optionsCell = $("<div style='width: 80px' class='is-flex-direction-row is-align-content-center'>");
                 optionsCell.append(
-                  $("<a>")
+                  $("<a style='cursor:pointer;'>")
                       .html(`
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <g clip-path="url(#clip0_1_1034)">
@@ -307,7 +362,7 @@
                 if (state === "failed") {
                   optionsCell.append($("<span>").addClass("button-spacer"));
                   optionsCell.append(
-                    $("<a>")
+                    $("<a style='cursor:pointer;'>")
                       .html(
                           `
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -339,6 +394,9 @@
             console.error("Error fetching job data: ", error);
             showErrorNotification("Error deleting job");
           },
+            success: function (success) {
+              showNotification("Job successfully deleted")
+          }
         });
       }
 
@@ -350,6 +408,9 @@
             console.error("Error fetching job data: ", error);
             showErrorNotification("Error requeueing job");
           },
+          success: function (success) {
+              showNotification("Job successfully requeued")
+          }
         });
       }
 
@@ -388,6 +449,12 @@
       function updatePageNumber() {
         // document.getElementById("page-number").textContent = page;
       }
+
+      const removeToast = (toast) => {
+          toast.classList.add("hide")
+          if (toast.timeoutId) clearTimeout(toast.timeoutId)
+          setTimeout(() => toast.remove(), 500)
+     }
     </script>
   </body>
 </html>

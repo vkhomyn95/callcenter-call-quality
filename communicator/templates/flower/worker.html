@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <span class="breadcrumb-navigation flex flex-align-center" onclick="returnPrevious()">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </span>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Воркер
+                </div>
+            </div>
+        </div>
+        <div class="content flex flex-direction-row">
+            <div class="card-wrapper">
+                <div class="card" style="height: 100%">
+                    <div style="padding: 20px 20px 0 20px">
+                        <span class="card-title">
+                            {{ worker['name'] }}
+                        </span>
+
+                        <div class="flex flex-direction-row tabs mt-20">
+                            <div class="pool-tab-header tab is-active"
+                                 onclick="changeFlowerWorkerTab(this, 'pool')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div>Pool</div>
+                                </div>
+                            </div>
+                            <div class="broker-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'broker')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">Broker</div>
+                                </div>
+                            </div>
+                            <div class="queues-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'queues')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">Queues</div>
+                                </div>
+                            </div>
+                            <div class="tasks-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'tasks')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">Tasks</div>
+                                </div>
+                            </div>
+                            <div class="limits-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'limits')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">Limits</div>
+                                </div>
+                            </div>
+                            <div class="config-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'config')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">Config</div>
+                                </div>
+                            </div>
+                            <div class="system-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'system')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">System</div>
+                                </div>
+                            </div>
+                            <div class="other-tab-header tab ml-15" onclick="changeFlowerWorkerTab(this, 'other')">
+                                <div class="flex flex-direction-row flex-align-center mb-10">
+                                    <div class="">Other</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body" style="height: calc(100% - 136px);">
+                        <div class="card-border"></div>
+                        <div class="card-body-wrapper pt-20">
+                            <div>
+                                <div class="pool-tab tab-content-body p-20">
+                                    {% for name,value in worker['stats'].get('pool', {}).items() %}
+                                    <div class="w-100 flex flex-column mb-20">
+                                        <label class="label label-required_danger">{{ name|humanize }}</label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ value|humanize }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+
+                                    <div class="flex flex-direction-row flex-align-center mb-20">
+                                        <label class="label label-required_danger">Worker PID</label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ worker['stats'].get('pid', 'N/A') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-direction-row flex-align-center mb-20">
+                                        <label class="label label-required_danger">Prefetch count</label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ worker['stats'].get('prefetch_count', 'N/A') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="broker-tab is-hidden tab-content-body p-20">
+                                    {% for name,value in (worker['stats'].get('consumer', None) or
+                                    worker['stats'])['broker'].items() %}
+                                    <div class="w-100 flex flex-column mb-20">
+                                        <label class="label label-required_danger">{{ name|humanize }}</label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ value|humanize }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="queues-tab is-hidden tab-content-body">
+                                    {% set headings = [
+                                        {'name': 'Name', 'is_name': True},
+                                        {'name': 'Exclusive', 'uuid': True},
+                                        {'name': 'Durable', 'state': True},
+                                        {'name': 'Routing key'},
+                                        {'name': 'No ACK'},
+                                        {'name': 'Alias'},
+                                        {'name': 'Queue arguments', 'date': True},
+                                        {'name': 'Binding arguments', 'date': True},
+                                        {'name': 'Auto delete'},
+                                        {'name': ''}
+                                    ] %}
+                                    <div class="table-header">
+                                        {% for heading in headings %}
+                                        <div style="width: {% if heading.uuid %}18%{% else %}{% if heading.is_name %}6%{% else %}{% if heading.state %}7%{% else %}{% if heading.date %}12%{% else %}8.5%{% endif %}{% endif %}{% endif %}{% endif %};">
+                                            {{ heading.name }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <div class="content-wrapper-info" style="overflow-y: visible">
+                                        <div class="table-content">
+
+                                            {% if not worker.get('active_queues', []) %}
+                                            <div class="table-row">
+                                                <div style="width: 100%; text-align: center">
+                                                    Немає активних задач
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% for queue in worker.get('active_queues', []) %}
+                                            <div class="table-row">
+                                                <div style="width: 12%">{{ queue['name'] }}</div>
+                                                <div style="width: 12%">{{ queue['exclusive'] }}</div>
+                                                <div style="width: 12%">{{ queue['durable'] }}</div>
+                                                <div style="width: 12%">{{ queue['routing_key'] }}</div>
+                                                <div style="width: 12%">{{ queue['no_ack'] }}</div>
+                                                <div style="width: 12%">{{ queue['alias'] }}</div>
+                                                <div style="width: 12%">{{ queue['queue_arguments'] }}</div>
+                                                <div style="width: 12%">{{ queue['binding_arguments'] }}</div>
+                                                <div style="width: 12%">{{ queue['auto_delete'] }}</div>
+                                                <div style="width: 12%">
+                                                    <button id="worker-cancel-consumer-{{ queue['name'] }}" class="btn btn-danger text-nowrap">Cancel Consumer</button>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tasks-tab is-hidden tab-content-body">
+                                    <div>Processed tasks</div>
+
+                                    {% for name,value in worker['stats']['total'].items() %}
+                                    <div class="w-100 flex flex-column mb-20">
+                                        <label class="label label-required_danger">{{ name|humanize }}</label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ value|humanize }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+
+                                    <div>Active tasks</div>
+                                    <div class="table-header">
+                                        <div>Name</div>
+                                        <div>UUID</div>
+                                        <div>Ack</div>
+                                        <div>PID</div>
+                                        <div>args</div>
+                                        <div>kwargs</div>
+                                    </div>
+                                    <div class="content-wrapper-info" style="overflow-y: visible">
+                                        <div class="table-content">
+
+                                            {% if not worker.get('active', []) %}
+                                            <div class="table-row">
+                                                <div style="width: 100%; text-align: center">
+                                                    Немає активних задач
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% for task in worker.get('active', {}) %}
+                                            <div class="table-row">
+                                                <div>{{ task['name'] }}</div>
+                                                <div>
+                                                    <a href="{{ reverse_url('task', task['id']) }}">{{ task['id'] }}</a>
+                                                </div>
+                                                <div>{{ task['acknowledged'] }}</div>
+                                                <div>{{ task['worker_pid'] }}</div>
+                                                <div>{{ task.get('args', 'N/A') }}</div>
+                                                <div>{{ task.get('kwargs', 'N/A') }}</div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div>Scheduled tasks</div>
+                                    <div class="table-header">
+                                        <div>Name</div>
+                                        <div>UUID</div>
+                                        <div>args</div>
+                                        <div>kwargs</div>
+                                    </div>
+
+                                    <div class="content-wrapper-info" style="overflow-y: visible">
+                                        <div class="table-content">
+
+                                            {% if not worker.get('scheduled', []) %}
+                                            <div class="table-row">
+                                                <div style="width: 100%; text-align: center">
+                                                    Немає активних scheduled задач
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% for task in worker.get('scheduled', {}) %}
+                                            <div class="table-row">
+                                                <div>{{ task['request']['name'] }}</div>
+                                                <div>
+                                                    <a href="{{ reverse_url('task', task['request']['id']) }}">{{ task['request']['id'] }}</a>
+                                                </div>
+                                                <div>{{ task['request']['args'] }}</div>
+                                                <div>{{ task['request']['kwargs'] }}</div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div>Reserved tasks</div>
+                                    <div class="table-header">
+                                        <div>Name</div>
+                                        <div>UUID</div>
+                                        <div>args</div>
+                                        <div>kwargs</div>
+                                    </div>
+
+                                    <div class="content-wrapper-info" style="overflow-y: visible">
+                                        <div class="table-content">
+
+                                            {% if not worker.get('reserved', {}) %}
+                                            <div class="table-row">
+                                                <div style="width: 100%; text-align: center">
+                                                    Немає активних reserved задач
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% for task in worker.get('reserved', {}) %}
+                                            <div class="table-row">
+                                                <div>{{ task['name'] }}</div>
+                                                <div>
+                                                    <a href="{{ reverse_url('task', task['id']) }}">{{ task['id'] }}</a>
+                                                </div>
+                                                <div>{{ task['args'] }}</div>
+                                                <div>{{ task['kwargs'] }}</div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div>Revoked tasks</div>
+                                    <div class="table-header">
+                                        <div>UUID</div>
+                                    </div>
+
+                                    <div class="content-wrapper-info" style="overflow-y: visible">
+                                        <div class="table-content">
+
+                                            {% if not worker.get('revoked', []) %}
+                                            <div class="table-row">
+                                                <div style="width: 100%; text-align: center">
+                                                    Немає активних revoked задач
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% for task in worker.get('revoked', []) %}
+                                            <div class="table-row">
+                                                <div>
+                                                    <a href="{{ reverse_url('task', task) }}">{{ task }}</a>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="limits-tab is-hidden tab-content-body">
+                                    <table class="table table-bordered table-striped caption-top">
+                                        <caption>Task limits</caption>
+                                        <thead>
+                                        <tr>
+                                            <th>Task</th>
+                                            <th class="text-center">Rate limit</th>
+                                            <th class="text-center">Timeouts</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="limits-table">
+                                        {% for taskname in worker.get('registered', []) %}
+                                        <tr>
+                                            <td>{{ taskname }}</td>
+                                            <td class="col-lg-2">
+                                                <div class="form-group">
+                                                    <div class="input-group">
+                                                        <input class="form-control form-control-sm" type="number">
+                                                        <button class="btn btn-primary btn-sm mx-1" type="button"
+                                                                id="task-rate-limit-{{taskname}}">Apply
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="col-lg-2">
+                                                <div class="form-group">
+                                                    <div class="input-group">
+                                                        <input class="form-control form-control-sm" type="number">
+                                                        <button class="btn btn-primary btn-sm mx-1" type="button"
+                                                                id="task-timeout-soft-{{taskname}}">Soft
+                                                        </button>
+                                                        <button class="btn btn-primary btn-sm mx-1" type="button"
+                                                                id="task-timeout-hard-{{taskname}}">Hard
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="config-tab is-hidden tab-content-body p-20">
+                                    {% for name,value in worker.get('conf', {}).items() %}
+                                    {% if value %}
+                                    <div class="w-100 flex flex-column mb-20">
+                                        <label class="label label-required_danger">
+                                            <a href="https://docs.celeryq.dev/en/latest/userguide/configuration.html#{{ name.lower().replace('_', '-') }}"
+                                               target="_blank">{{ name|humanize }}</a>
+                                        </label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ value|humanize }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="system-tab is-hidden tab-content-body p-20">
+                                    {% if worker['stats'] and worker['stats'].get('rusage', None) %}
+                                    {% for name, value in worker['stats']['rusage'].items() %}
+                                    <div class="w-100 flex flex-column mb-20">
+                                        <label class="label label-required_danger">
+                                            {{ name }}
+                                        </label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ value }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <div class="other-tab is-hidden tab-content-body p-20">
+                                    {% if other %}
+                                    {% for name, value in other.items() %}
+                                    <div class="w-100 flex flex-column mb-20">
+                                        <label class="label label-required_danger">
+                                            {{ name }}
+                                        </label>
+                                        <div class="w-100">
+                                            <div>
+                                                {{ value }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+<script>
+    function returnPrevious() {
+        if (!document.referrer) {
+            window.location.href = '/flowers/workers'
+        } else if (!document.referrer.includes("workers")) {
+            window.location.href = '/flowers/workers'
+        } else {
+            window.location.href = document.referrer;
+        }
+    }
+
+    function changeFlowerWorkerTab(el, tab) {
+        const tabHeaders = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content-body');
+        tabHeaders.forEach(header => header.classList.remove('is-active'));
+        tabContents.forEach(content => content.classList.add('is-hidden'));
+        el.classList.add("is-active");
+        document.querySelector(`.${tab}-tab`).classList.remove('is-hidden');
+    }
+</script>
+</html>

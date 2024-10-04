@@ -1,3 +1,5 @@
+import asyncio
+
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
@@ -6,8 +8,9 @@ from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
+from communicator.app import Flower
 from communicator.logger.logger import Logger
-from communicator.routes import CustomHTTPException
+from communicator.routes import CustomHTTPException, flower
 from communicator.routes import auth, transcribe, api, transcription, hook
 
 from communicator.routes import user
@@ -29,19 +32,40 @@ async def custom_http_exception_handler(request: Request, exc: CustomHTTPExcepti
         content={"success": exc.success, "message": exc.message}
     )
 
+
 # Include the routers
 app.include_router(transcribe.router, prefix="/api/v1")
 app.include_router(api.router, prefix="/api/v1/user")
 app.include_router(auth.router)
 app.include_router(user.router, prefix="/users")
 app.include_router(transcription.router, prefix="/transcriptions")
-
 app.include_router(hook.router, prefix="/webhooks")
+app.include_router(flower.router, prefix="/flowers")
+
+flower_app = Flower()
+
+app.state.flower_app = flower_app
+
+
+async def start_fastapi():
+    config = uvicorn.Config(app, host=variables.app_host, port=variables.app_port, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+async def start_flower():
+    flower_app.start()  # Start the Flower app (Tornado-based)
+
+
+async def run_servers():
+    await asyncio.gather(
+        start_fastapi(),  # Run FastAPI/Uvicorn
+        start_flower(),  # Run Flower (Tornado)
+    )
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        app,
-        host=variables.app_host,
-        port=variables.app_port
-    )
+    try:
+        asyncio.run(run_servers())
+    except (KeyboardInterrupt, SystemExit):
+        pass

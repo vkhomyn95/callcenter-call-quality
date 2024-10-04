@@ -33,41 +33,41 @@
 
 
             <div class="{% if not open %}left-header-wrapper-navigation-opened{% endif %} left-header-wrapper-navigation header-open-on-visible">
-                <div class="left-header-wrapper-navigation-content header-open-on-visible">Transcriber</div>
+                <div class="left-header-wrapper-navigation-content header-open-on-visible">Транскрибатор</div>
                 <div class="left-header-wrapper-navigation-dropdown header-open-on-visible">
                    {% include 'header/icons/icon-down.html' %}
                 </div>
             </div>
 
-            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
-                {% include 'header/icons/icon-dashboard.html' %}
-                <div class="left-panel-wrapper-navigation-content">Tasks</div>
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('flower_broker') }}">
+                {% include 'header/icons/icon-rabbitmq-queues.html' %}
+                <div class="left-panel-wrapper-navigation-content">Черги</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
-            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
-                {% include 'header/icons/icon-dashboard.html' %}
-                <div class="left-panel-wrapper-navigation-content">Broker</div>
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('flower_tasks') }}">
+                 {% include 'header/icons/icon-rabbitmq-tasks.html' %}
+                <div class="left-panel-wrapper-navigation-content">Задачі</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
-            <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
-                {% include 'header/icons/icon-dashboard.html' %}
-                <div class="left-panel-wrapper-navigation-content">Workers</div>
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('flower_workers') }}">
+                {% include 'header/icons/icon-rabbitmq-workers.html' %}
+                <div class="left-panel-wrapper-navigation-content">Воркери</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 
             <div class="header-wrapper-divider"></div>
 
-            <a class="left-panel-wrapper-navigation" href="{{ url_for('transcriptions') }}">
-                {% include 'header/icons/icon-recognitions.html' %}
-                <div class="left-panel-wrapper-navigation-content">Запити транскрибування</div>
-                <div class="left-panel-wrapper-divider"></div>
-            </a>
-
             <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
                 {% include 'header/icons/icon-dashboard.html' %}
                 <div class="left-panel-wrapper-navigation-content">Звіти та статистика</div>
+                <div class="left-panel-wrapper-divider"></div>
+            </a>
+
+            <a class="left-panel-wrapper-navigation" href="{{ url_for('transcriptions') }}">
+                {% include 'header/icons/icon-recognitions.html' %}
+                <div class="left-panel-wrapper-navigation-content">Запити транскрибування</div>
                 <div class="left-panel-wrapper-divider"></div>
             </a>
 

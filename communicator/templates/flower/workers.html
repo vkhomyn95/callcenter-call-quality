@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Воркери
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Воркери
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            Моніторинг
+                        </div>
+                    </div>
+                    <div class="content-wrapper-head-actions">
+                        <div class="flex flex-direction-column ml-15">
+                            <label class="label label-required_danger mb-5" style="width: 100%">Автооновлення</label>
+                            <div class="w-100 flex flex-content-center flex-align-center" style="height: 36px">
+                            <span id="toggleActive">
+                              <span onclick="toggleAutorefresh()">
+                                  {% include 'header/icons/icon-square-checked.html' %}
+                                  <input type="hidden" checked id="autorefresh-switch">
+                              </span>
+                            </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'Worker'},
+                    {'name': 'Status'},
+                    {'name': 'Active'},
+                    {'name': 'Processed'},
+                    {'name': 'Failed'},
+                    {'name': 'Succeeded'},
+                    {'name': 'Retried'},
+                    {'name': 'Load Average'}
+                ] %}
+
+                <div class="table-header">
+                    {% for heading in headings %}
+                    <div style="width: {% if not heading.actions %}12.5%{% else %}60px{% endif %};">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content" id="flower-workers-table">
+                        {% if not workers.items() %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Немає воркерів
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% for name, info in workers.items() %}
+                        <div class="table-row" id="{{ name | urlencode }}">
+                            <div style="width: 12.5%">{{ name }}</div>
+                            <div style="width: 12.5%">{{ info.get('status', None) }}</div>
+                            <div style="width: 12.5%">{{ info.get('active', 0) or 0 }}</div>
+                            <div style="width: 12.5%">{{ info.get('task-received', 0) }}</div>
+                            <div style="width: 12.5%">{{ info.get('task-failed', 0) }}</div>
+                            <div style="width: 12.5%">{{ info.get('task-succeeded', 0) }}</div>
+                            <div style="width: 12.5%">{{ info.get('task-retried', 0) }}</div>
+                            <div style="width: 12.5%">{{ info.get('loadavg', 'N/A')|humanize }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<script type="text/javascript">
+    var flower_worker_auto_refresh = true;
+    var flower_worker_auto_refresh_interval;
+    function toggleAutorefresh() {
+        flower_worker_auto_refresh = !flower_worker_auto_refresh;
+
+        if (flower_worker_auto_refresh) {
+          flower_worker_auto_refresh_interval = window.runFlowerTableDataUpdate();
+        } else {
+          clearInterval(flower_worker_auto_refresh_interval);
+        }
+        const activeSpan = document.getElementById('toggleActive');
+        if (!flower_worker_auto_refresh) {
+            activeSpan.innerHTML = `
+                <span onclick="toggleAutorefresh()">
+                    {% include 'header/icons/icon-square.html' %}
+                    <input type="hidden" id="autorefresh-switch">
+                </span>`;
+        } else {
+            activeSpan.innerHTML = `
+                <span onclick="toggleAutorefresh()">
+                    {% include 'header/icons/icon-square-checked.html' %}
+                    <input type="hidden" checked id="autorefresh-switch">
+                </span>`;
+        }
+      }
+</script>
+</body>
+</html>

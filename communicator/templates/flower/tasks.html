@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Задачі
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Задачі транскрибування
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            Моніторинг
+                        </div>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'Name', 'is_name': True},
+                    {'name': 'UUID', 'uuid': True},
+                    {'name': 'State', 'state': True},
+                    {'name': 'args'},
+                    {'name': 'kwargs'},
+                    {'name': 'Result'},
+                    {'name': 'Received', 'date': True},
+                    {'name': 'Started', 'date': True},
+                    {'name': 'Runtime'},
+                    {'name': 'Worker'}
+                ] %}
+
+                <div class="table-header">
+                    {% for heading in headings %}
+                    <div style="width: {% if heading.uuid %}18%{% else %}{% if heading.is_name %}6%{% else %}{% if heading.state %}7%{% else %}{% if heading.date %}12%{% else %}8.5%{% endif %}{% endif %}{% endif %}{% endif %};">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content" id="flower-tasks-table">
+
+                        {% if not tasks %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Немає активних задач
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% for uuid, task in tasks %}
+                        <div class="table-row">
+                            <div style="width: 12%">{{ task.name }}</div>
+                            <div style="width: 12%">{{ task.uuid }}</div>
+                            <div style="width: 12%">{{ task.state }}</div>
+                            <div style="width: 12%">{{ task.args }}</div>
+                            <div style="width: 12%">{{ task.kwargs }}</div>
+                            <div style="width: 12%">
+                                {% if task.state == "SUCCESS" %}
+                                    {{ task.result }}
+                                {% elif task.state == "FAILURE" %}
+                                    {{ task.exception }}
+                                {% endif %}
+                            </div>
+                            <div style="width: 12%">{{ task.get('received', 0)|humanize }}</div>
+                            <div style="width: 12%">{{ task.get('started', 0)|humanize }}</div>
+                            <div style="width: 12%">
+                                {% if task.timestamp and task.started %}
+                                    {{ '%.2f' % humanize(task.timestamp - task.started) }} sec
+                                {% endif %}
+                            </div>
+                            <div style="width: 12%">{{ task.worker }}</div>
+                            <div style="width: 12%">{{ task.exchange }}</div>
+                            <div style="width: 12%">{{ task.routing_key }}</div>
+                            <div style="width: 12%">{{ task.retries }}</div>
+                            <div style="width: 12%">{{ task.get('started', 0)|humanize }}</div>
+                            <div style="width: 12%">{{ task.exception }}</div>
+                            <div style="width: 12%">{{ task.eta }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

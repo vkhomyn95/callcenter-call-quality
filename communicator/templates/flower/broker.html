@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include 'head.html' %}
+
+<body>
+
+{% include 'header/header-top.html' %}
+
+<div class="container">
+
+    {% include 'header/header-left.html' %}
+
+    <div class="container-main">
+        <div class="breadcrumb">
+            <div class="breadcrumb-navigation flex flex-align-center">
+                {% include 'header/icons/icon-breadcrumb.html' %}
+            </div>
+            <div class="breadcrumb-heading flex flex-align-center">
+                <div class="breadcrumb-heading-previous ml-15">
+                    Черги
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="content-wrapper-head">
+                    <div class="content-head-heading">
+                        <div class="content-wrapper-head-header-heading">
+                            Черги
+                        </div>
+                        <div class="content-wrapper-head-header-description">
+                            {{ broker_url }}
+                        </div>
+                    </div>
+                </div>
+
+                {% set headings = [
+                    {'name': 'Queue'},
+                    {'name': 'Messages'},
+                    {'name': 'Unacked'},
+                    {'name': 'Ready'},
+                    {'name': 'Consumers'},
+                    {'name': 'Idle since'}
+                ] %}
+
+                <div class="table-header">
+                    {% for heading in headings %}
+                    <div style="width:16.5%">
+                        {{ heading.name }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="content-wrapper-info">
+                    <div class="table-content">
+                        {% if not queues %}
+                        <div class="table-row">
+                            <div style="width: 100%; text-align: center">
+                                Відсутні брокери
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% for queue in queues %}
+                        <div class="table-row" id="{{ queue['name'] | urlencode }}">
+                            <div style="width: 18%">{{ queue['name'] }}</div>
+                            <div style="width: 18%">{{ queue.get('messages', 'N/A') }}</div>
+                            <div style="width: 18%">{{ queue.get('messages_unacknowledged', 'N/A') }}</div>
+                            <div style="width: 18%">{{ queue.get('messages_ready', 'N/A') }}</div>
+                            <div style="width: 16.5%">{{ queue.get('consumers', 'N/A') }}</div>
+                            <div style="width: 17%">{{ queue.get('idle_since', 'N/A') }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
