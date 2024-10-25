@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY /celery_worker /usr/src/celery_worker
 
-ENV PYTHONPATH /usr/src
+ENV PYTHONPATH=/usr/src

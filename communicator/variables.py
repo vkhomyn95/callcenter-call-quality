@@ -1,9 +1,18 @@
+import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List, Dict
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def load_flower_state_cleaner() -> List[Dict]:
+    return json.loads(os.getenv(
+        "FLOWER_STATE_CLEANER",
+        '[{"type": "transcribe", "max_count": 100, "timedelta": 30}]'
+    ))
 
 
 @dataclass(frozen=True)
@@ -106,6 +115,10 @@ class Variables:
         "FILE_DIR",
         "/stor/data/transcription/"
     )
+    server_timezone: int = int(os.getenv(
+        "SERVER_TIMEZONE",
+        3
+    ))
     base_dir = os.path.dirname(__file__)
 
     # Flower
@@ -119,11 +132,11 @@ class Variables:
     ))
     flower_db: str = os.getenv(
         "FLOWER_DATABASE",
-        "flower"
+        "/stor/data/flower"
     )
     flower_persistent: bool = bool(os.getenv(
         "FLOWER_PERSISTENT",
-        False
+        True
     ))
     flower_state_save_interval: int = int(os.getenv(
         "FLOWER_STATE_SAVE_INTERVAL",
@@ -133,6 +146,13 @@ class Variables:
         "FLOWER_ENABLE_EVENTS",
         True
     ))
+    flower_state_save_failed: bool = bool(os.getenv(
+        "FLOWER_STATE_SAVE_FAILED",
+        False
+    ))
+    flower_state_cleaner: list = field(
+        default_factory=load_flower_state_cleaner
+    )
     flower_max_workers: int = int(os.getenv(
         "FLOWER_MAX_WORKERS",
         5000

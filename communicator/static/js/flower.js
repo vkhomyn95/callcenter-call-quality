@@ -247,17 +247,17 @@ var flower = (function () {
 
         $.ajax({
             type: 'POST',
-            url: url_prefix() + '/api/worker/queue/cancel-consumer/' + workername,
+            url: url_prefix() + '/flowers/workers/cancel-consumer/' + workername + "/queue/" + queue,
             dataType: 'json',
             data: {
-                'workername': workername,
+                'worker_name': workername,
                 'queue': queue,
             },
             success: function (data) {
-                show_alert(data.message, "success");
+                showNotification(data.message);
             },
             error: function (data) {
-                show_alert(data.responseText, "danger");
+                showErrorNotification(data.message);
             }
         });
     });
@@ -368,13 +368,15 @@ var flower = (function () {
 
     function format_time(timestamp) {
         var time = $('#time').val(),
-            prefix = time && time.startsWith('natural-time') ? 'natural-time' : 'time',
-            tz = time && time.substr(prefix.length + 1) || 'UTC';
+        prefix = time && time.startsWith('natural-time') ? 'natural-time' : 'time';
 
-        if (prefix === 'natural-time') {
-            return moment.unix(timestamp).tz(tz).fromNow();
-        }
-        return moment.unix(timestamp).tz(tz).format('YYYY-MM-DD HH:mm:ss.SSS');
+    // If 'natural-time', return a human-readable relative time in the local timezone
+    if (prefix === 'natural-time') {
+        return moment.unix(timestamp).local().fromNow(); // Convert to local time and show relative format
+    }
+
+    // Otherwise, return the formatted date/time in local time ('YYYY-MM-DD HH:mm:ss.SSS')
+    return moment.unix(timestamp).local().format('YYYY-MM-DD HH:mm:ss.SSS');
     }
 
     function isColumnVisible(name) {
@@ -498,25 +500,54 @@ var flower = (function () {
         });
     }
 
-    $(document).ready(function () {
-        if (!active_page('/flowers/tasks')) {
-            return;
-        }
+    let page = 1;
 
-        $.ajax({
-            url: url_prefix() + '/flowers/tasks/datatable',
+      window.onload = function () {
+        updatePageNumber();
+      };
+
+      window["nextTaskPage"] = function nextPage() {
+        page += 1;
+        updatePageNumber();
+        updateTasksData();
+      }
+
+      window["previousTaskPage"] = function previousPage() {
+        if (page > 1) {
+          page -= 1;
+          updatePageNumber();
+          updateTasksData();
+        }
+      }
+
+      window["filterFlowerTasks"] = function filterFlowerTasks() {
+            event.preventDefault();
+            updateTasksData();
+      }
+
+      window["resetTaskForm"] = function resetTaskForm() {
+            event.preventDefault();
+            $("#state-filter").val("all");
+            $("#search-name-filter").val("");
+            updateTasksData();
+      }
+
+      function updateTasksData () {
+          let selectedState = $("#state-filter").val();
+          let selectedSearchValue = $("#search-name-filter").val();
+
+          $.ajax({
+            url: url_prefix() + `/flowers/tasks/datatable?limit=10&page=${page}&state=${selectedState}&search=${selectedSearchValue}`,
             type: "GET",
             dataType: "json",
             success: function (data) {
                 var tableBody = $("#flower-tasks-table");
-                console.log(data);
                 tableBody.empty();
                 if (data.data.length === 0) {
                     var row = $("<div class='table-row'>");
                     row.append($("<div style=\"width: 100%; text-align: center\">Немає активник задач</div></div>"));
                     tableBody.append(row);
                 }
-                console.log(data)
                 $.each(data.data, function (index, task) {
                   var row = $("<div class=\"table-row\">");
                   row.append($("<div style=\"width: 6%\">").text(task.name));
@@ -547,6 +578,18 @@ var flower = (function () {
                   showErrorNotification("Error fetching flower tasks data");
                 },
         })
+      }
+
+      function updatePageNumber() {
+        document.getElementById("page-number").textContent = page;
+      }
+
+    $(document).ready(function () {
+        if (!active_page('/flowers/tasks')) {
+            return;
+        }
+
+        updateTasksData();
     });
 
 }(jQuery));

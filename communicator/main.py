@@ -58,10 +58,16 @@ async def start_flower():
 
 
 async def run_servers():
-    await asyncio.gather(
-        start_fastapi(),  # Run FastAPI/Uvicorn
-        start_flower(),  # Run Flower (Tornado)
-    )
+    fastapi_task = asyncio.create_task(start_fastapi())
+    flower_task = asyncio.create_task(start_flower())
+
+    await asyncio.gather(fastapi_task, flower_task)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("===> Shutting down. Stop flower ==>")
+    flower_app.stop()
 
 
 if __name__ == "__main__":

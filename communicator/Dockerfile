@@ -10,4 +10,4 @@ RUN mkdir /usr/src/communicator
 
 COPY /communicator /usr/src/communicator/
 
-ENV PYTHONPATH /usr/src
+ENV PYTHONPATH=/usr/src

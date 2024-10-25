@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
@@ -192,3 +193,18 @@ def humanize_transcription_time_range(time_range):
 
 
 templates.env.filters['humanize_transcription_time_range'] = humanize_transcription_time_range
+
+
+def humanize_transcription_time(time_range):
+    if not time_range:
+        return "---"
+    if time_range.endswith('Z'):
+        dt = datetime.strptime(time_range, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+    else:
+        dt = datetime.strptime(time_range, "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=timezone.utc)
+    utc_plus = timezone(timedelta(hours=variables.server_timezone))
+    dt_in_timezone = dt.astimezone(utc_plus)
+    return dt_in_timezone.strftime("%Y-%m-%d %H:%M:%S")
+
+
+templates.env.filters['humanize_transcription_time'] = humanize_transcription_time

@@ -1,5 +1,6 @@
 import json
 import typing
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
@@ -388,3 +389,16 @@ def flash(request: Request, message: typing.Any, category: str = "primary") -> N
 
 def get_flashed_messages(request: Request):
     return request.session.pop("_messages") if "_messages" in request.session else []
+
+
+def humanize_user_time(time_range):
+    if not time_range:
+        return "---"
+    if time_range.tzinfo is None:
+        time_range = time_range.replace(tzinfo=timezone.utc)
+    utc_plus = timezone(timedelta(hours=variables.server_timezone))
+    dt_in_timezone = time_range.astimezone(utc_plus)
+    return dt_in_timezone.strftime("%Y-%m-%d %H:%M:%S")
+
+
+templates.env.filters['humanize_user_time'] = humanize_user_time

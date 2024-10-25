@@ -29,7 +29,6 @@ class Inspector:
     def _inspect(self, method, workername):
         destination = [workername] if workername else None
         inspect = self.capp.control.inspect(timeout=self.timeout, destination=destination)
-
         logger.debug('Sending %s inspect command', method)
         start = time.time()
         result = (
@@ -38,7 +37,7 @@ class Inspector:
             else getattr(inspect, method)(safe=True)
         )
         logger.debug("Inspect command %s took %.2fs to complete", method, time.time() - start)
-
+        print("Inspect command %s took %.2fs to complete", method, time.time() - start)
         if result is None or 'error' in result:
             logger.warning("Inspect method %s failed", method)
             return

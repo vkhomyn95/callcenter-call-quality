@@ -40,15 +40,15 @@
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Дата отримання</div>
-                                <div class="recognition-label">{{ recognition.received_date }}</div>
+                                <div class="recognition-label">{{ recognition.received_date|humanize_transcription_time }}</div>
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Дата початку транскрибування</div>
-                                <div class="recognition-label">{{ recognition.transcription_date }}</div>
+                                <div class="recognition-label">{{ recognition.transcription_date|humanize_transcription_time }}</div>
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Дата завершення транскрибування</div>
-                                <div class="recognition-label">{{ recognition['@timestamp'] }}</div>
+                                <div class="recognition-label">{{ recognition['@timestamp']|humanize_transcription_time }}</div>
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Кількість каналів</div>
@@ -67,7 +67,7 @@
                                     Канал {{ r + 1 }}:
                                     <audio controls>
                                         <source
-                                                src="{{ url_for('transcription_audio', transcription_id=ddd, channel=r) }}"
+                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=r) }}"
                                                 type="audio/wav"
                                         >
                                         Your browser does not support the audio element.

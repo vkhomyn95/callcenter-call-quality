@@ -2,6 +2,7 @@ import json
 import logging
 import time
 import typing
+from datetime import timezone, timedelta
 from functools import total_ordering
 
 from fastapi import APIRouter, HTTPException, Query
@@ -173,8 +174,58 @@ async def flower_worker(
         return RedirectResponse(url="/login/", status_code=303)
 
 
+@router.post("/workers/cancel-consumer/{worker_name}/queue/{queue}", response_class=HTMLResponse)
+async def flower_workers(
+        request: Request,
+        refresh: bool = False,
+        worker_name: str = None,
+        queue: str = None,
+):
+    """
+    Handles the worker consumers.
+
+    Returns:
+        HTMLResponse: The rendered HTML of the user management page if the user is an admin.
+                      Redirects to the login page if no user is in session.
+                      Redirects to the user's personal page if the user is not an admin.
+    """
+    session_user = await get_user(request)
+
+    if not session_user:
+        return RedirectResponse(url="/login/", status_code=303)
+
+    if await is_admin(request):
+        try:
+            def is_worker(worker_name):
+                return worker_name and worker_name in request.app.state.flower_app.workers
+
+            if not is_worker(worker_name):
+                raise web.HTTPError(404, f"Unknown worker '{worker_name}'")
+            logging.info(" == Canceling consumer '%s' '%s' worker", queue, worker_name)
+            response = request.app.state.flower_app.capp.control.broadcast(
+                'cancel_consumer', arguments={'queue': queue},
+                destination=[worker_name], reply=True)
+            if response and 'ok' in response[0][worker_name]:
+                return JSONResponse(dict(message=f"Canceling consumer for worker {worker_name}"))
+            else:
+                logging.error(" == Canceling consumer '%s' '%s' worker failed", queue, worker_name, response)
+                return JSONResponse(dict(message=f"Failed to cancel '{queue}' consumer from '{worker_name}' worker"))
+        except Exception as e:
+            logging.error(f"=== An error occurred canceling consumers flower data template: ", e)
+            raise HTTPException(
+                status_code=500,
+                detail="An error occurred reading canceling flower consumer template {}".format(e),
+            )
+    else:
+        return RedirectResponse(url="/login/", status_code=303)
+
+
 @router.get("/tasks", response_class=HTMLResponse)
-async def flower_tasks(request: Request):
+async def flower_tasks(
+        request: Request,
+        page: int = Query(1, alias="page"),
+        limit: int = Query(10, alias="limit"),
+):
     """
     Handles the user management page for administrators.
 
@@ -191,7 +242,7 @@ async def flower_tasks(request: Request):
     if await is_admin(request):
         try:
             app = request.app.state.flower_app
-
+            offset = (page - 1) * limit
             # time = 'natural-time' if app.options.natural_time else 'time'
             # if app.capp.conf.timezone:
             #     time += '-' + str(app.capp.conf.timezone)
@@ -201,6 +252,10 @@ async def flower_tasks(request: Request):
                 "tasks": [],
                 "columns": "name,uuid,state,args,kwargs,result,received,started,runtime,worker",
                 "time": "time",
+                'page': page,
+                'total_pages': 1,
+                'start_page': max(1, page - 2),
+                'end_page': min(1, page + 2),
                 "current_user": session_user
             })
 
@@ -219,11 +274,14 @@ async def flower_tasks_datatable(
         request: Request,
         draw: int = Query(1, alias="page"),
         start: int = Query(0, alias="start"),
+        state: str = Query(0, alias="state"),
         length: int = Query(10, alias="length"),
         search: str = Query(None, alias="search"),
         column: int = Query(1, alias="column"),
         sort_by: str = Query(None, alias="sort_by"),
-        sort_order: str = Query("desc", alias="sort_order")
+        sort_order: str = Query("desc", alias="sort_order"),
+        page: int = Query(1, alias="page"),
+        limit: int = Query(10, alias="limit"),
 ):
     """
     Handles the user management page for administrators.
@@ -239,7 +297,10 @@ async def flower_tasks_datatable(
         return RedirectResponse(url="/login/", status_code=303)
 
     if await is_admin(request):
-        # try:
+        offset = (page - 1) * limit
+
+        # total_pages = 1 if users_count <= limit else (users_count + (limit - 1)) // limit
+
         app = request.app.state.flower_app
 
         def key(item):
@@ -250,7 +311,13 @@ async def flower_tasks_datatable(
             return uuid, args
 
         sorted_tasks = sorted(
-            iter_tasks(app.events, search=search)
+            iter_tasks(
+                app.events,
+                limit=limit,
+                offset=offset,
+                state=state if state != 'all' else None,
+                search=dict(args=[search]) if search else dict(),
+            )
         )
 
         filtered_tasks = []
@@ -268,6 +335,10 @@ async def flower_tasks_datatable(
             "data": filtered_tasks,
             "recordsTotal": len(sorted_tasks),
             "recordsFiltered": len(sorted_tasks),
+            'page': page,
+            'total_pages': 100,
+            'start_page': max(1, page - 2),
+            'end_page': min(100, page + 2),
         }
         # except Exception as e:
         #     logging.error(f"=== An error occurred reading tasks data json: ", e)
@@ -448,3 +519,16 @@ def get_active_queue_names(app):
     if not queues:
         queues = set([app.capp.conf.task_default_queue]) | {q.name for q in app.capp.conf.task_queues or [] if q.name}
     return sorted(queues)
+
+
+def humanize_flower_time(time_range):
+    if not time_range:
+        return "---"
+    if time_range.tzinfo is None:
+        time_range = time_range.replace(tzinfo=timezone.utc)
+    utc_plus = timezone(timedelta(hours=variables.server_timezone))
+    dt_in_timezone = time_range.astimezone(utc_plus)
+    return dt_in_timezone.strftime("%Y-%m-%d %H:%M:%S")
+
+
+templates.env.filters['humanize_flower_time'] = humanize_flower_time

@@ -99,13 +99,13 @@
                                     </div>
                                     <div style="width: 100%">
                                         <a
-                                                href="{{baseurl}}/jobs/?state=successful&queue_name={{queue_name}}"
+                                                href="{{baseurl}}/webhooks/jobs?state=finished&queue_name={{queue_name}}"
                                         >
                                             {{ worker.successful_job_count }}
                                         </a>
                                     </div>
                                     <div style="width: 100%">
-                                        <a href="{{baseurl}}/jobs/?state=failed&queue_name={{queue_name}}"
+                                        <a href="{{baseurl}}/webhooks/jobs?state=failed&queue_name={{queue_name}}"
                                         >{{ worker.failed_job_count }}</a
                                         >
                                     </div>

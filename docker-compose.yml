@@ -15,12 +15,14 @@ services:
               capabilities: [ gpu ]
     env_file:
       - ".env"
+    environment:
+      - C_FORCE_ROOT=true
     network_mode: host
     restart: always
     volumes:
       - "/stor:/stor"
     command: >
-      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads &
+      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads -E &
              python celery_worker/hook/start.py"
 
   communicator:
@@ -34,6 +36,8 @@ services:
     env_file:
       - ".env"
     network_mode: host
+    depends_on:
+      - celery-worker
     restart: always
     command: >
       sh -c "python communicator/main.py"

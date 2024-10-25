@@ -12,7 +12,6 @@ class CustomElasticsearchBackend(ElasticsearchBackend):
     index = variables.elasticsearch_index
 
     def _set_with_state(self, key, value, state):
-        print(value)
         body = {
             'status': value["status"],
             'task_id': value["task_id"],
@@ -66,5 +65,6 @@ celery = Celery(
 
 celery.conf.update({
     'broker_connection_retry': True,
-    'broker_connection_retry_on_startup': True
+    'broker_connection_retry_on_startup': True,
+    'worker_send_task_events': True
 })

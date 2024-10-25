@@ -119,7 +119,7 @@
                               {{ job.name }}
                             </div>
                             <div style="width: 20%">
-                              {{ job.created_at }}
+                              {{ job.created_at|humanize_hook_time }}
                             </div>
 
                             <div style="width: 60px">
@@ -152,7 +152,7 @@
                     </div>
                 </li>
                   <li class="pagination-wrapper-option ml-20">
-                    <div class="pagination-wrapper-option-button pagination-wrapper-option-button-active" >{{ page if page else 1 }}</div>
+                    <div class="pagination-wrapper-option-button pagination-wrapper-option-button-active" id="page-number">{{ page if page else 1 }}</div>
                 </li>
                 <li class="pagination-wrapper-option" onclick="nextPage()">
                     <div class="pagination-wrapper-option-button" aria-label="Goto page 1" style="margin-left: 10px">
@@ -313,9 +313,28 @@
         }
       }
 
+      function hasElements(arr) {
+          for (let i = 0; i < arr.length; i++) {
+              for (let arrElementKey in arr[i]) {
+                  if (Array.isArray(arr[i][arrElementKey])) {
+                      if (arr[i][arrElementKey].length > 0) {
+                          return true;
+                      }
+                  }
+              }
+          }
+          return false;
+      }
+
       function updateJobsTable(data) {
         var tableBody = $("#table-content");
         tableBody.empty();
+        if (data.length === 0 || !hasElements(data)) {
+            var row = $("<div class='table-row'>");
+            row.append($("<div style=\"width: 100%; text-align: center\">Немає задач</div></div>"));
+            tableBody.append(row);
+        }
+
         $.each(data, function (index, queue) {
           $.each(
             [
@@ -335,7 +354,7 @@
                 row.append($("<div style='width: 19%'>").append(jobLink));
                 row.append($("<div style='width: 10%'>").append(state));
                 row.append($("<div style='width: 45%'>").text(job.name));
-                row.append($("<div style='width: 20%'>").text(job.created_at));
+                row.append($("<div style='width: 20%'>").text(format_time(job.created_at)));
 
                 var optionsCell = $("<div style='width: 80px' class='is-flex-direction-row is-align-content-center'>");
                 optionsCell.append(
@@ -447,7 +466,7 @@
       }
 
       function updatePageNumber() {
-        // document.getElementById("page-number").textContent = page;
+        document.getElementById("page-number").textContent = page;
       }
 
       const removeToast = (toast) => {
@@ -455,6 +474,34 @@
           if (toast.timeoutId) clearTimeout(toast.timeoutId)
           setTimeout(() => toast.remove(), 500)
      }
+
+     function format_time(timestamp) {
+        var dateObj;
+
+        // Check if the timestamp is a string with a format like '2024-10-01T08:02:30.350647'
+        if (typeof timestamp === 'string') {
+            // Remove the microsecond part if present, as JavaScript Date can't handle it directly
+            timestamp = timestamp.split('.')[0];  // Keep only up to seconds
+            dateObj = new Date(timestamp + 'Z');  // Parse string as UTC date
+        } else {
+            // Assume it's a Unix timestamp (seconds since epoch), convert to milliseconds
+            dateObj = new Date(timestamp * 1000);  // Convert to JavaScript Date object
+        }
+
+        // Format the date to 'YYYY-MM-DD HH:mm:ss.SSS' in local time
+        var year = dateObj.getFullYear();
+        var month = String(dateObj.getMonth() + 1).padStart(2, '0');  // Months are 0-based
+        var day = String(dateObj.getDate()).padStart(2, '0');
+        var hours = String(dateObj.getHours()).padStart(2, '0');
+        var minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        var seconds = String(dateObj.getSeconds()).padStart(2, '0');
+        var milliseconds = String(dateObj.getMilliseconds()).padStart(3, '0');
+
+        // Combine the parts into the desired format
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+    }
+
+
     </script>
   </body>
 </html>

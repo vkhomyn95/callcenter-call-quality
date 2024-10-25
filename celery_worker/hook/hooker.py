@@ -53,7 +53,7 @@ def send_post_request(webhook_payload: HookerRequestPayload) -> None:
             webhook_payload["url"],
             headers=headers,
             json=webhook_payload["payload"],
-            timeout=10,
+            timeout=120,
         )
 
         if not response.status_code == HTTPStatus.OK:

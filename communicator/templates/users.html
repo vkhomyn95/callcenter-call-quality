@@ -69,7 +69,7 @@
                         {% for user in users %}
                         <div class="table-row">
                             <div style="width: 12%">{{ user.id }}</div>
-                            <div style="width: 12%">{{ user.created_date }}</div>
+                            <div style="width: 12%">{{ user.created_date|humanize_user_time }}</div>
                             <div style="width: 12%">{{ user.last_name }}</div>
                             <div style="width: 12%">{{ user.first_name }}</div>
                             <div style="width: 12%">{{ user.phone }}</div>

@@ -22,7 +22,17 @@ redis_conn = Redis.from_url(
 )
 
 
+def terminate_existing_worker(worker_name):
+    workers = Worker.all(connection=redis_conn)
+    for worker in workers:
+        if worker.name == worker_name:
+            worker.request_stop()  # Gracefully stop the worker
+            print(f"Terminated existing worker: {worker_name}")
+
+
 if __name__ == "__main__":
+    worker_name = "transcription_postback_hook_worker"
+    terminate_existing_worker(worker_name)
     with Connection(redis_conn):
-        worker = Worker(map(Queue, listen), name="transcription_postback_hook_worker")
+        worker = Worker(map(Queue, listen), name=worker_name)
         worker.work(with_scheduler=True)

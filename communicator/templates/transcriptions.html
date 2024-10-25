@@ -105,8 +105,8 @@
                         {% endif %}
                         {% for recognition in recognitions %}
                         <div class="table-row">
-                            <div style="width: 19%">{{ recognition.received_date }}</div>
-                            <div style="width: 19%">{{ recognition['@timestamp'] }}</div>
+                            <div style="width: 19%">{{ recognition.received_date|humanize_transcription_time }}</div>
+                            <div style="width: 19%">{{ recognition['@timestamp']|humanize_transcription_time }}</div>
                             <div style="width: 19%">{{ recognition.task_id }}</div>
                             <div style="width: 19%">{{ recognition.num_channels }}</div>
                             <div style="width: 19%">{{ recognition.duration }}</div>

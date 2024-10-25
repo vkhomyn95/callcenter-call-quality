@@ -17,3 +17,6 @@ werkzeug
 soundfile
 pandas
 rq_scheduler
+tornado
+prometheus_client
+humanize
