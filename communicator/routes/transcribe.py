@@ -75,9 +75,9 @@ async def transcribe(
             detail=f'Not valid access_token or tariff limit reached. Required {duration} seconds'
         )
 
-    resampler = Resampler(unique_uuid).resample(info, audio)
-
     received_date = datetime.now(timezone.utc).isoformat()[:-9]
+
+    resampler = Resampler(unique_uuid).resample(info, audio, received_date)
 
     talk_record_id = int(talk_record_id) if talk_record_id else None
 

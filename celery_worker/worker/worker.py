@@ -144,7 +144,7 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
 
     for file_path in resampler:
         logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
-        transcription = process_transcription(os.path.join(variables.file_dir, file_path))
+        transcription = process_transcription(os.path.join(get_save_directory(received_date), file_path))
         transcription_results.append(transcription)
 
     return {
@@ -172,3 +172,13 @@ def process_transcription(file_path):
     transcription = whisper.pipe(file_path, return_timestamps=True)
     transcription.pop('text', None)
     return transcription
+
+
+def get_save_directory(received_date):
+    # Create directory path based on received date (year/month/day)
+    year, month, day = received_date.split('T')[0].split("-")
+    save_dir = os.path.join(variables.file_dir, year, month, day)
+
+    # Create the directories if they do not exist
+    os.makedirs(save_dir, exist_ok=True)
+    return save_dir

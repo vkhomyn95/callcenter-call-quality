@@ -23,7 +23,17 @@ class Resampler:
         self.default_resampling_method = "sinc_interpolation"
         self.default_audio_format = "wav"
 
-    def resample(self, info: AudioMetaData, audio: bytes):
+    @staticmethod
+    def get_save_directory(received_date):
+        # Create directory path based on received date (year/month/day)
+        year, month, day = received_date.split('T')[0].split("-")
+        save_dir = os.path.join(variables.file_dir, year, month, day)
+
+        # Create the directories if they do not exist
+        os.makedirs(save_dir, exist_ok=True)
+        return save_dir
+
+    def resample(self, info: AudioMetaData, audio: bytes, received_date):
         """Get the name of the current global backend
 
         :ivar bytes audio: bytes from upload audio
@@ -35,9 +45,6 @@ class Resampler:
         """
 
         files: list = []
-
-        print(info)
-        print(info.num_frames / info.sample_rate)
         waveform, sample_rate = torchaudio.load(BytesIO(audio))
 
         if info.sample_rate != self.default_sample_rate:
@@ -53,10 +60,10 @@ class Resampler:
             )(waveform)
 
         """ Split channels to separate mono file if upload file is stereo. """
-
+        save_dir = self.get_save_directory(received_date)
         if info.num_channels > 1:
             for channel in range(info.num_channels):
-                file_path = os.path.join(variables.file_dir, self.unique_uuid + "_" + str(channel) + ".wav")
+                file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(channel) + ".wav")
                 torchaudio.save(
                     file_path,
                     waveform[channel].unsqueeze(0),
@@ -68,7 +75,7 @@ class Resampler:
                     f'  == Request {self.unique_uuid} split channel {channel} to mono and saved file as {file_path}.'
                 )
         else:
-            file_path = os.path.join(variables.file_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
+            file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
             torchaudio.save(
                 file_path,
                 waveform,

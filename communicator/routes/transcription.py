@@ -137,8 +137,8 @@ async def transcription(request: Request, transcription_id: str, db: Session = D
     )
 
 
-@router.get('/{transcription_id}/audio/{channel}', response_class=HTMLResponse)
-async def transcription_audio(request: Request, transcription_id: str, channel: int):
+@router.get('/{transcription_id}/audio/{channel}/date/{received_date}', response_class=HTMLResponse)
+async def transcription_audio(request: Request, transcription_id: str, channel: int, received_date):
     session_user = await get_user(request)
 
     if not session_user:
@@ -147,7 +147,7 @@ async def transcription_audio(request: Request, transcription_id: str, channel: 
     filename = f"{transcription_id}_{channel}.wav"
 
     # Construct the full file path based on the audio directory and filename
-    file_path = os.path.join(variables.file_dir, filename)
+    file_path = os.path.join(get_save_directory(received_date), filename)
 
     # Check if the file exists
     if os.path.exists(file_path):
@@ -156,6 +156,16 @@ async def transcription_audio(request: Request, transcription_id: str, channel: 
     else:
         # Handle file not found (you can return a 404 or any other appropriate response)
         return RedirectResponse(url="/404", status_code=404)
+
+
+def get_save_directory(received_date):
+    # Create directory path based on received date (year/month/day)
+    year, month, day = received_date.split('T')[0].split("-")
+    save_dir = os.path.join(variables.file_dir, year, month, day)
+
+    # Create the directories if they do not exist
+    os.makedirs(save_dir, exist_ok=True)
+    return save_dir
 
 
 async def get_user(request: Request) -> dict:

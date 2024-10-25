@@ -67,7 +67,7 @@
                                     Канал {{ r + 1 }}:
                                     <audio controls>
                                         <source
-                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=r) }}"
+                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=r, received_date=recognition.received_date) }}"
                                                 type="audio/wav"
                                         >
                                         Your browser does not support the audio element.
@@ -78,7 +78,7 @@
                                     {% if recognition.unique_uuid %}
                                     <audio controls>
                                         <source
-                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=1) }}"
+                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=1, received_date=recognition.received_date) }}"
                                                 type="audio/wav"
                                         >
                                         Your browser does not support the audio element.
