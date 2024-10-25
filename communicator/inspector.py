@@ -37,7 +37,6 @@ class Inspector:
             else getattr(inspect, method)(safe=True)
         )
         logger.debug("Inspect command %s took %.2fs to complete", method, time.time() - start)
-        print("Inspect command %s took %.2fs to complete", method, time.time() - start)
         if result is None or 'error' in result:
             logger.warning("Inspect method %s failed", method)
             return
