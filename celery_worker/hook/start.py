@@ -1,4 +1,5 @@
 """Module dedicated to spawn rq workers."""
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -22,17 +23,19 @@ redis_conn = Redis.from_url(
 )
 
 
-def terminate_existing_worker(worker_name):
+def terminate_existing_workers():
     workers = Worker.all(connection=redis_conn)
     for worker in workers:
-        if worker.name == worker_name:
-            worker.request_stop()  # Gracefully stop the worker
-            print(f"Terminated existing worker: {worker_name}")
+        try:
+            worker.teardown()
+            worker._shutdown()
+        except Exception as e:
+            logging.error("Error terminating worker ", worker.name, e)
 
 
 if __name__ == "__main__":
     worker_name = "transcription_postback_hook_worker"
-    terminate_existing_worker(worker_name)
+    terminate_existing_workers()
     with Connection(redis_conn):
         worker = Worker(map(Queue, listen), name=worker_name)
         worker.work(with_scheduler=True)

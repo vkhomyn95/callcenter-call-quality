@@ -42,4 +42,16 @@ class Inspector:
             return
         for worker, response in result.items():
             if response is not None:
-                self.io_loop.add_callback(partial(self._on_update, worker, method, response))
+                future = self.io_loop.run_in_executor(
+                    None,  # Use the default executor
+                    partial(self._on_update, worker, method, response)  # Run state.event(event) in the executor
+                )
+
+                def handle_exception(fut):
+                    try:
+                        fut.result()  # This will raise an exception if the task failed
+                    except Exception as exc:
+                        logger.error(f"Error processing event: {exc}")
+
+                # Add a callback to handle any exceptions in the future
+                future.add_done_callback(handle_exception)
