@@ -120,19 +120,18 @@
                                 {{ task.exception }}
                                 {% endif %}
                             </div>
-                            {{ ddd|humanize_flower_time}}
-                            <div style="width: 12%">{{ task.get('received', 0) | humanize_flower_time }}</div>
-                            <div style="width: 12%">{{ task.get('started', 0)|humanize_flower_time }}</div>
+                            <div style="width: 12%" class="created-date">{{ task.get('received', 0)  }}</div>
+                            <div style="width: 12%" class="created-date">{{ task.get('started', 0) }}</div>
                             <div style="width: 12%">
                                 {% if task.timestamp and task.started %}
                                 {{ '%.2f' % humanize(task.timestamp - task.started) }} sec
                                 {% endif %}
                             </div>
-                            <div style="width: 12%">{{ task.worker|humanize_flower_time }}</div>
+                            <div style="width: 12%">{{ task.worker }}</div>
                             <div style="width: 12%">{{ task.exchange }}</div>
                             <div style="width: 12%">{{ task.routing_key }}</div>
                             <div style="width: 12%">{{ task.retries }}</div>
-                            <div style="width: 12%">{{ task.get('started', 0)|humanize_flower_time }}</div>
+                            <div style="width: 12%" class="created-date">{{ task.get('started', 0) }}</div>
                             <div style="width: 12%">{{ task.exception }}</div>
                             <div style="width: 12%">{{ task.eta }}</div>
                             <div style="width: 60px">
@@ -181,5 +180,44 @@
         </div>
     </div>
 </div>
+<script>
+    function convertUTCToLocal(utcDateString) {
+      // Parse the UTC date string to a Date object
+      if (utcDateString.endsWith("Z")) {
+            utcDateString = utcDateString.replaceAll("Z", "");
+        }
+        const utcDate = new Date(utcDateString + 'Z')
+
+      // Format the Date object to the desired format in the local timezone
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Ensures local timezone
+      };
+
+      const formatter = new Intl.DateTimeFormat('en-CA', options);
+      const formattedDateParts = formatter.formatToParts(utcDate);
+
+      // Extract parts and assemble into desired format
+      const year = formattedDateParts.find(part => part.type === 'year').value;
+      const month = formattedDateParts.find(part => part.type === 'month').value;
+      const day = formattedDateParts.find(part => part.type === 'day').value;
+      const hour = formattedDateParts.find(part => part.type === 'hour').value;
+      const minute = formattedDateParts.find(part => part.type === 'minute').value;
+      const second = formattedDateParts.find(part => part.type === 'second').value;
+
+      // Return the formatted date string
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    }
+    document.querySelectorAll('.created-date').forEach(element => {
+      const utcDate = element.textContent.trim();
+      element.textContent = convertUTCToLocal(utcDate);
+    });
+</script>
 </body>
 </html>

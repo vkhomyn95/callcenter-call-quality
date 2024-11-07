@@ -118,8 +118,8 @@
                             <div style="width: 45%">
                               {{ job.name }}
                             </div>
-                            <div style="width: 20%">
-                              {{ job.created_at|humanize_hook_time }}
+                            <div style="width: 20%" class="created-date">
+                              {{ job.created_at }}
                             </div>
 
                             <div style="width: 60px">
@@ -354,7 +354,7 @@
                 row.append($("<div style='width: 19%'>").append(jobLink));
                 row.append($("<div style='width: 10%'>").append(state));
                 row.append($("<div style='width: 45%'>").text(job.name));
-                row.append($("<div style='width: 20%'>").text(format_time(job.created_at)));
+                row.append($("<div style='width: 20%'>").text(convertUTCToLocal(job.created_at)));
 
                 var optionsCell = $("<div style='width: 80px' class='is-flex-direction-row is-align-content-center'>");
                 optionsCell.append(
@@ -475,31 +475,43 @@
           setTimeout(() => toast.remove(), 500)
      }
 
-     function format_time(timestamp) {
-        var dateObj;
-
-        // Check if the timestamp is a string with a format like '2024-10-01T08:02:30.350647'
-        if (typeof timestamp === 'string') {
-            // Remove the microsecond part if present, as JavaScript Date can't handle it directly
-            timestamp = timestamp.split('.')[0];  // Keep only up to seconds
-            dateObj = new Date(timestamp + 'Z');  // Parse string as UTC date
-        } else {
-            // Assume it's a Unix timestamp (seconds since epoch), convert to milliseconds
-            dateObj = new Date(timestamp * 1000);  // Convert to JavaScript Date object
+    function convertUTCToLocal(utcDateString) {
+      // Parse the UTC date string to a Date object
+      if (utcDateString.endsWith("Z")) {
+            utcDateString = utcDateString.replaceAll("Z", "");
         }
+        const utcDate = new Date(utcDateString + 'Z')
 
-        // Format the date to 'YYYY-MM-DD HH:mm:ss.SSS' in local time
-        var year = dateObj.getFullYear();
-        var month = String(dateObj.getMonth() + 1).padStart(2, '0');  // Months are 0-based
-        var day = String(dateObj.getDate()).padStart(2, '0');
-        var hours = String(dateObj.getHours()).padStart(2, '0');
-        var minutes = String(dateObj.getMinutes()).padStart(2, '0');
-        var seconds = String(dateObj.getSeconds()).padStart(2, '0');
-        var milliseconds = String(dateObj.getMilliseconds()).padStart(3, '0');
+      // Format the Date object to the desired format in the local timezone
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Ensures local timezone
+      };
 
-        // Combine the parts into the desired format
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+      const formatter = new Intl.DateTimeFormat('en-CA', options);
+      const formattedDateParts = formatter.formatToParts(utcDate);
+
+      // Extract parts and assemble into desired format
+      const year = formattedDateParts.find(part => part.type === 'year').value;
+      const month = formattedDateParts.find(part => part.type === 'month').value;
+      const day = formattedDateParts.find(part => part.type === 'day').value;
+      const hour = formattedDateParts.find(part => part.type === 'hour').value;
+      const minute = formattedDateParts.find(part => part.type === 'minute').value;
+      const second = formattedDateParts.find(part => part.type === 'second').value;
+
+      // Return the formatted date string
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
     }
+    document.querySelectorAll('.created-date').forEach(element => {
+      const utcDate = element.textContent.trim();
+      element.textContent = convertUTCToLocal(utcDate);
+    });
 
 
     </script>

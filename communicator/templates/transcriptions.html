@@ -105,8 +105,8 @@
                         {% endif %}
                         {% for recognition in recognitions %}
                         <div class="table-row">
-                            <div style="width: 19%">{{ recognition.received_date|humanize_transcription_time }}</div>
-                            <div style="width: 19%">{{ recognition['@timestamp']|humanize_transcription_time }}</div>
+                            <div style="width: 19%" class="created-date">{{ recognition.received_date }}</div>
+                            <div style="width: 19%" class="created-date">{{ recognition['@timestamp'] }}</div>
                             <div style="width: 19%">{{ recognition.task_id }}</div>
                             <div style="width: 19%">{{ recognition.num_channels }}</div>
                             <div style="width: 19%">{{ recognition.duration }}</div>
@@ -175,6 +175,44 @@
           document.body.removeChild(notification);
         }, 3000);
     }
+
+    function convertUTCToLocal(utcDateString) {
+  // Parse the UTC date string to a Date object
+        if (utcDateString.endsWith("Z")) {
+            utcDateString = utcDateString.replaceAll("Z", "");
+        }
+        const utcDate = new Date(utcDateString + 'Z'); // 'Z' indicates UTC timezone
+
+      // Format the Date object to the desired format in the local timezone
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Ensures local timezone
+      };
+
+      const formatter = new Intl.DateTimeFormat('en-CA', options);
+      const formattedDateParts = formatter.formatToParts(utcDate);
+
+      // Extract parts and assemble into desired format
+      const year = formattedDateParts.find(part => part.type === 'year').value;
+      const month = formattedDateParts.find(part => part.type === 'month').value;
+      const day = formattedDateParts.find(part => part.type === 'day').value;
+      const hour = formattedDateParts.find(part => part.type === 'hour').value;
+      const minute = formattedDateParts.find(part => part.type === 'minute').value;
+      const second = formattedDateParts.find(part => part.type === 'second').value;
+
+      // Return the formatted date string
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    }
+    document.querySelectorAll('.table-row .created-date').forEach(element => {
+      const utcDate = element.textContent.trim();
+      element.textContent = convertUTCToLocal(utcDate);
+    });
 </script>
 </body>
 </html>

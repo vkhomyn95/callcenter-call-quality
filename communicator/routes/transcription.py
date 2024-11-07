@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
@@ -193,28 +192,3 @@ async def is_admin(request: Request):
     """
     user_data = await get_user(request)
     return user_data["role"]["name"] == 'admin'
-
-
-def humanize_transcription_time_range(time_range):
-    start_seconds, end_seconds = time_range
-    start_minutes, start_seconds = divmod(int(start_seconds), 60)
-    end_minutes, end_seconds = divmod(int(end_seconds if end_seconds else start_seconds), 60)
-    return f"{start_minutes}:{start_seconds:02d} - {end_minutes}:{end_seconds:02d}"
-
-
-templates.env.filters['humanize_transcription_time_range'] = humanize_transcription_time_range
-
-
-def humanize_transcription_time(time_range):
-    if not time_range:
-        return "---"
-    if time_range.endswith('Z'):
-        dt = datetime.strptime(time_range, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-    else:
-        dt = datetime.strptime(time_range, "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=timezone.utc)
-    utc_plus = timezone(timedelta(hours=variables.server_timezone))
-    dt_in_timezone = dt.astimezone(utc_plus)
-    return dt_in_timezone.strftime("%Y-%m-%d %H:%M:%S")
-
-
-templates.env.filters['humanize_transcription_time'] = humanize_transcription_time

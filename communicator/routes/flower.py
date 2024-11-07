@@ -2,7 +2,6 @@ import json
 import logging
 import time
 import typing
-from datetime import timezone, timedelta
 from functools import total_ordering
 
 from fastapi import APIRouter, HTTPException, Query
@@ -519,16 +518,3 @@ def get_active_queue_names(app):
     if not queues:
         queues = set([app.capp.conf.task_default_queue]) | {q.name for q in app.capp.conf.task_queues or [] if q.name}
     return sorted(queues)
-
-
-def humanize_flower_time(time_range):
-    if not time_range:
-        return "---"
-    if time_range.tzinfo is None:
-        time_range = time_range.replace(tzinfo=timezone.utc)
-    utc_plus = timezone(timedelta(hours=variables.server_timezone))
-    dt_in_timezone = time_range.astimezone(utc_plus)
-    return dt_in_timezone.strftime("%Y-%m-%d %H:%M:%S")
-
-
-templates.env.filters['humanize_flower_time'] = humanize_flower_time

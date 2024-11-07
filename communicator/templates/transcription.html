@@ -40,15 +40,15 @@
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Дата отримання</div>
-                                <div class="recognition-label">{{ recognition.received_date|humanize_transcription_time }}</div>
+                                <div class="recognition-label created-date">{{ recognition.received_date }}</div>
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Дата початку транскрибування</div>
-                                <div class="recognition-label">{{ recognition.transcription_date|humanize_transcription_time }}</div>
+                                <div class="recognition-label created-date">{{ recognition.transcription_date }}</div>
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Дата завершення транскрибування</div>
-                                <div class="recognition-label">{{ recognition['@timestamp']|humanize_transcription_time }}</div>
+                                <div class="recognition-label created-date">{{ recognition['@timestamp'] }}</div>
                             </div>
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Кількість каналів</div>
@@ -177,5 +177,42 @@
             window.location.href = document.referrer;
         }
     }
+    function convertUTCToLocal(utcDateString) {
+      // Parse the UTC date string to a Date object
+      if (utcDateString.endsWith("Z")) {
+            utcDateString = utcDateString.replaceAll("Z", "");
+        }
+        const utcDate = new Date(utcDateString + 'Z')
+
+      // Format the Date object to the desired format in the local timezone
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Ensures local timezone
+      };
+
+      const formatter = new Intl.DateTimeFormat('en-CA', options);
+      const formattedDateParts = formatter.formatToParts(utcDate);
+
+      // Extract parts and assemble into desired format
+      const year = formattedDateParts.find(part => part.type === 'year').value;
+      const month = formattedDateParts.find(part => part.type === 'month').value;
+      const day = formattedDateParts.find(part => part.type === 'day').value;
+      const hour = formattedDateParts.find(part => part.type === 'hour').value;
+      const minute = formattedDateParts.find(part => part.type === 'minute').value;
+      const second = formattedDateParts.find(part => part.type === 'second').value;
+
+      // Return the formatted date string
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    }
+    document.querySelectorAll('.created-date').forEach(element => {
+      const utcDate = element.textContent.trim();
+      element.textContent = convertUTCToLocal(utcDate);
+    });
 </script>
 </html>
