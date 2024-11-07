@@ -457,7 +457,10 @@ async def get_user(request: Request) -> dict:
     Returns:
         dict: The session user if exists, else None.
     """
-    return json.loads(request.session.get("user"))
+    user = request.session.get("user")
+    if user:
+        return json.loads(user)
+    return user
 
 
 async def is_admin(request: Request):
