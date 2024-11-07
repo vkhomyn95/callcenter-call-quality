@@ -140,31 +140,9 @@
                 </div>
             </div>
         </div>
-
-        <div class="pagination">
-          <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-            <ul class="pagination-wrapper">
-                <li class="pagination-wrapper-option" onclick="previousPage()">
-                    <div class="pagination-wrapper-option-button" aria-label="Goto page 1">
-                        <svg height="20px" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M15.1667 8L11 12.1667L15.1667 16.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                </li>
-                  <li class="pagination-wrapper-option ml-20">
-                    <div class="pagination-wrapper-option-button pagination-wrapper-option-button-active" id="page-number">{{ page if page else 1 }}</div>
-                </li>
-                <li class="pagination-wrapper-option" onclick="nextPage()">
-                    <div class="pagination-wrapper-option-button" aria-label="Goto page 1" style="margin-left: 10px">
-                        <svg height="20px" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11.2333 16L15.4 11.8333L11.2333 7.66667" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                </li>
-            </ul>
-          </nav>
-        </div>
-
+        {% with page=page, total_pages=total_pages, start_page=start_page, end_page=end_page, template='webhook/jobs' %}
+            {% include "pagination.html" %}
+        {% endwith %}
     </div>
 </div>
 
@@ -279,18 +257,33 @@
 
       function filterJobsByState() {
         let selectedState = $("#state-filter").val();
-        updateJobsData(selectedState);
+        updateJobsData(selectedState, true);
       }
 
       function filterJobsByQueue() {
         let selectedQueue = $("#queue-name-filter").val();
-        updateJobsData(selectedQueue);
+        updateJobsData(selectedQueue, true);
       }
+      const urlParams = new URLSearchParams(window.location.search);
+      let isFilter = false;
+      function updateJobsData(filtering = false) {
+          if (filtering) {
+              isFilter = filtering;
+          }
+          page = isFilter ? 1: urlParams.get("page") ? +urlParams.get("page") : page;
 
-      function updateJobsData() {
-        if (autoRefreshEnabled) {
+          if (autoRefreshEnabled) {
           let selectedState = $("#state-filter").val();
           let selectedQueue = $("#queue-name-filter").val();
+          if (isFilter) {
+              window.location.href = baseurl +
+                  "/jobs?state=" +
+                  selectedState +
+                  "&queue_name=" +
+                  selectedQueue +
+                  "&page=" +
+                  1;
+          }
           $.ajax({
             url:
               baseurl +
@@ -303,7 +296,7 @@
             type: "GET",
             dataType: "json",
             success: function (data) {
-              updateJobsTable(data);
+              updateJobsTable(data.data);
             },
             error: function (error) {
               console.error("Error fetching jobs data: ", error);
@@ -447,9 +440,9 @@
 
       let page = 1;
 
-      window.onload = function () {
-        updatePageNumber();
-      };
+      // window.onload = function () {
+      //   updatePageNumber();
+      // };
 
       function nextPage() {
         page += 1;

@@ -62,6 +62,7 @@ def get_job_registrys(
         end_index = start_index + per_page
 
         scheduled_jobs = []
+        jobs_fetched_count = 0
 
         for queue in queues:
             if queue_name == "all" or queue_name == queue.name:
@@ -108,7 +109,7 @@ def get_job_registrys(
                         )
 
                 jobs_fetched = Job.fetch_many(jobs, connection=redis)
-
+                jobs_fetched_count = len(jobs_fetched)
                 started_jobs = []
                 failed_jobs = []
                 deferred_jobs = []
@@ -181,7 +182,7 @@ def get_job_registrys(
                     )
                 )
 
-        return result
+        return result, jobs_fetched_count
     except Exception as error:
         logger.exception("Error fetching job registries: ", error)
         raise HTTPException(
@@ -193,8 +194,8 @@ def get_jobs(
     redis_url: str, queue_name: str = "all", state: str = "all", page: int = 1
 ) -> list[QueueJobRegistryStats]:
     try:
-        job_stats = get_job_registrys(redis_url, queue_name, state, page)
-        return job_stats
+        job_stats, jobs_count = get_job_registrys(redis_url, queue_name, state, page)
+        return job_stats, jobs_count
     except Exception as error:
         logger.exception("Error fetching job data: ", error)
         raise HTTPException(status_code=500, detail=str("Error fetching job data"))

@@ -581,7 +581,9 @@ var flower = (function () {
       }
 
       function updatePageNumber() {
-        document.getElementById("page-number").textContent = page;
+          if (document.getElementById("page-number") !== null) {
+              document.getElementById("page-number").textContent = page;
+          }
       }
 
     $(document).ready(function () {

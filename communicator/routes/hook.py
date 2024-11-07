@@ -2,10 +2,10 @@ import json
 import typing
 import logging
 from datetime import timezone, timedelta
-
+from fastapi.encoders import jsonable_encoder
 from fastapi import APIRouter, HTTPException, Query
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse, JSONResponse
 from starlette.templating import Jinja2Templates
 
 from communicator.utils.webhook_jobs import get_jobs, QueueJobRegistryStats, JobDataDetailed, get_job, delete_job_id, \
@@ -210,10 +210,10 @@ async def hook_jobs(
 
     if await is_admin(request):
         try:
-            job_data = get_jobs(variables.redis_url, queue_name, state, page=page)
-
+            job_data, jobs_count = get_jobs(variables.redis_url, queue_name, state, page=page)
+            limit = 10
             active_tab = "jobs"
-
+            total_pages = 1 if jobs_count <= limit else (jobs_count + (limit - 1)) // limit
             protocol = request.url.scheme
 
             return templates.TemplateResponse(
@@ -225,6 +225,14 @@ async def hook_jobs(
                     "prefix": prefix,
                     "protocol": protocol,
                     "current_user": session_user,
+                    'page': page,
+                    'start_page': max(1, page - 2),
+                    'total_pages': total_pages,
+                    'end_page': min(total_pages, page + 2),
+                    'filter': {
+                        "state": state,
+                        "queue_name": queue_name
+                    }
                 },
             )
         except Exception as e:
@@ -237,7 +245,7 @@ async def hook_jobs(
         return RedirectResponse(url="/login/", status_code=303)
 
 
-@router.get("/jobs/json", response_model=list[QueueJobRegistryStats])
+@router.get("/jobs/json")
 async def read_jobs(
     request: Request,
     queue_name: str = Query("all"),
@@ -259,9 +267,11 @@ async def read_jobs(
 
     if await is_admin(request):
         try:
-            job_data = get_jobs(variables.redis_url, queue_name, state, page=page)
-
-            return job_data
+            job_data, jobs_count = get_jobs(variables.redis_url, queue_name, state, page=page)
+            return JSONResponse(dict(
+                data=jsonable_encoder(job_data),
+                count=jobs_count
+            ))
         except Exception as e:
             logging.error("An error occurred reading jobs data json:", e)
             raise HTTPException(
