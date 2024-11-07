@@ -115,10 +115,6 @@ class Variables:
         "FILE_DIR",
         "/stor/data/transcription/"
     )
-    server_timezone: int = int(os.getenv(
-        "SERVER_TIMEZONE",
-        3
-    ))
     base_dir = os.path.dirname(__file__)
 
     # Flower
