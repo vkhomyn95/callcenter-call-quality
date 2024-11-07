@@ -78,7 +78,7 @@ def send_webhook(*, webhook_payload: HookerRequestPayload) -> Job:
     return queue.enqueue(
         send_post_request,
         webhook_payload,
-        retry=Retry(10, 60),
-        job_timeout=20,
+        retry=Retry(5, [60, 120, 300, 600, 1800, 3600]),
+        job_timeout=200,
         job_id=f"{webhook_payload['payload']['task_id']}"
     )
