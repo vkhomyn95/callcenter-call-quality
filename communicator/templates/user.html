@@ -240,7 +240,7 @@
                                     <label class="label label-required_danger">Загалом (хв)</label>
                                     <div class="w-100">
                                         <div>
-                                            {{ user.tariff.total / 60 if user and user.tariff.total else 0}}
+                                            {{ "%.2f" | format(user.tariff.total / 60) if user and user.tariff.total else "0.00" }}
                                         </div>
                                     </div>
                                 </div>
