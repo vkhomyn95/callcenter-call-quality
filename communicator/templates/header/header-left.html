@@ -3,7 +3,7 @@
 <header class="left-panel">
     <aside class="left-panel-wrapper">
         <div class="left-panel-wrapper-link{% if not open %} left-panel-wrapper-link-selected{% endif %}">
-
+            {% if current_user.role.name == 'admin' %}
             <div class="{% if not open %}left-header-wrapper-navigation-opened{% endif %} left-header-wrapper-navigation header-open-on-visible">
                 <div class="left-header-wrapper-navigation-content header-open-on-visible">RQ-Вебхук</div>
                 <div class="left-header-wrapper-navigation-dropdown header-open-on-visible">
@@ -58,7 +58,7 @@
             </a>
 
             <div class="header-wrapper-divider"></div>
-
+            {% endif %}
             <a class="left-panel-wrapper-navigation" href="{{ url_for('user_dashboard') }}">
                 {% include 'header/icons/icon-dashboard.html' %}
                 <div class="left-panel-wrapper-navigation-content">Звіти та статистика</div>
