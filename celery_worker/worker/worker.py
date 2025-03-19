@@ -1,8 +1,10 @@
 import logging
 import os
 from datetime import datetime, timezone
+from io import BytesIO
 
 from celery import Task
+from elevenlabs import ElevenLabs
 
 from celery_worker.database.database import pymysql_db
 from celery_worker.hook.hooker import validate_url, send_webhook
@@ -10,7 +12,8 @@ from celery_worker.models.whsiper import WhisperModelProcessor
 from celery_worker.variables import variables
 from celery_worker.worker.start import celery
 
-whisper = WhisperModelProcessor()
+# whisper = WhisperModelProcessor()
+elevenlabs = ElevenLabs(api_key=variables.elevenlabs_api_key)
 
 
 class CallbackTask(Task):
@@ -144,9 +147,30 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
 
     for file_path in resampler:
         logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
-        transcription = process_transcription(os.path.join(get_save_directory(received_date), file_path))
-        transcription_results.append(transcription)
+        # transcription = process_transcription(os.path.join(get_save_directory(received_date), file_path))
 
+        try:
+            with open(os.path.join(get_save_directory(received_date), file_path), 'rb') as audio_file:
+                audio_data = BytesIO(audio_file.read())
+
+            transcription = elevenlabs.speech_to_text.convert(
+                file=audio_data,
+                model_id="scribe_v1",
+                tag_audio_events=True,
+                diarize=True
+            )
+            # print(transcription)
+            transcription_results.append({"words": transcription.words})
+            # return transcription.text
+        except Exception as e:
+            logging.error(f"Error processing file {file_path}: {e}")
+            return None
+
+        # transcription_results.append(transcription)
+    # print()
+    # print("========================")
+    # print(split_replies_by_index(transcription_results))
+    # print("========================")
     return {
         "received_date": received_date,
         "transcription_date": transcription_date,
@@ -155,23 +179,24 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
         "num_channels": num_channels,
         "user_id": user_id,
         "talk_record_id": talk_record_id,
-        "transcription": transcription_results,
+        "transcription": split_replies_by_index(transcription_results),
         "unique_uuid": unique_uuid,
         "origin": origin
     }
 
 
-def process_transcription(file_path):
-    """
-    Helper function to process the transcription of a file.
-
-    :param file_path: The file path to the audio file.
-    :return: The transcription result without the 'text' key.
-    """
-
-    transcription = whisper.pipe(file_path, return_timestamps=True)
-    transcription.pop('text', None)
-    return transcription
+# def process_transcription(file_path):
+#     """
+#     Helper function to process the transcription of a file.
+#
+#     :param file_path: The file path to the audio file.
+#     :return: The transcription result without the 'text' key.
+#     """
+#
+#     transcription = whisper.pipe(file_path, return_timestamps=True)
+#     print(transcription)
+#     transcription.pop('text', None)
+#     return transcription
 
 
 def get_save_directory(received_date):
@@ -182,3 +207,55 @@ def get_save_directory(received_date):
     # Create the directories if they do not exist
     os.makedirs(save_dir, exist_ok=True)
     return save_dir
+
+
+def split_replies_by_index(transcription_results):
+    """
+    Split transcription results into separate replies for each channel based on timestamps.
+
+    :param transcription_results: List of transcription results from each channel.
+    :return: A list of two dictionaries, each containing chunks of phrases for a channel.
+    """
+    all_words = []
+
+    for idx, result in enumerate(transcription_results):
+        for word in result['words']:
+            if word.type != 'spacing':
+                all_words.append({
+                    "text": word.text,
+                    "start": float(round(word.start, 1)),
+                    "end": float(round(word.end, 1)),
+                    "channel": idx
+                })
+
+    all_words.sort(key=lambda x: x['start'])
+
+    channel_replies = {0: [], 1: []}
+    current_reply = {0: None, 1: None}
+
+    for word in all_words:
+        text = word["text"]
+        start = float(round(word["start"], 1))
+        end = float(round(word["end"], 1))
+        channel = word["channel"]
+
+        if current_reply[channel] is None:
+            current_reply[channel] = {
+                "text": text,
+                "timestamp": [float(start), float(end)]
+            }
+        else:
+            current_reply[channel]["text"] += " " + text
+            current_reply[channel]["timestamp"][1] = end
+
+        other_channel = 1 - channel
+        if current_reply[other_channel] is not None:
+            channel_replies[other_channel].append(current_reply[other_channel])
+            current_reply[other_channel] = None
+
+    for ch in [0, 1]:
+        if current_reply[ch] is not None:
+            channel_replies[ch].append(current_reply[ch])
+
+    return [{"chunks": channel_replies[0]}, {"chunks": channel_replies[1]}]
+

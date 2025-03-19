@@ -68,6 +68,10 @@ class Variables:
         "WHISPER_MODEL", "openai/whisper-large-v3"
     )
 
+    elevenlabs_api_key: str = os.getenv(
+        "ELEVENLABS_API_KEY", ""
+    )
+
     app_host: str = os.getenv(
         "APP_HOST", "127.0.0.1"
     )

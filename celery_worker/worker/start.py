@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+
 import elasticsearch
 from celery import Celery
 from celery.backends.elasticsearch import ElasticsearchBackend
+from elasticsearch import Elasticsearch
 from kombu import serialization
 
 from celery_worker.variables import variables
@@ -49,6 +51,46 @@ class CustomElasticsearchBackend(ElasticsearchBackend):
         except elasticsearch.exceptions.NotFoundError:
             pass
 
+
+es = Elasticsearch(variables.elasticsearch_uri)
+
+if not es.indices.exists(index=variables.elasticsearch_index):
+    mapping = {
+        "properties": {
+            "status": {"type": "keyword"},
+            "task_id": {"type": "keyword"},
+            "duration": {"type": "float"},
+            "num_channels": {"type": "integer"},
+            "user_id": {"type": "integer"},
+            "talk_record_id": {"type": "integer"},
+            "transcription": {
+                "type": "object",
+                "properties": {
+                    "chunks": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "timestamp": {"type": "float"}
+                        }
+                    }
+                }
+            },
+            "unique_uuid": {"type": "keyword"},
+            "received_date": {"type": "date"},
+            "transcription_date": {"type": "date"},
+            "@timestamp": {"type": "date"}
+        }
+
+    }
+    es.indices.create(index=variables.elasticsearch_index, body={"mappings": mapping})
 
 serialization.register(
     'elasticsearch', lambda x: x, lambda x: x,
