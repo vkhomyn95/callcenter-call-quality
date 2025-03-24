@@ -15,6 +15,7 @@ class CustomElasticsearchBackend(ElasticsearchBackend):
 
     def _set_with_state(self, key, value, state):
         body = {
+            "model": value["result"]["model"] if "model" in value["result"] else None,
             'status': value["status"],
             'task_id': value["task_id"],
             'duration': value["result"]["duration"] if "duration" in value["result"] else None,
@@ -57,6 +58,7 @@ es = Elasticsearch(variables.elasticsearch_uri)
 if not es.indices.exists(index=variables.elasticsearch_index):
     mapping = {
         "properties": {
+            "model": {"type": "keyword"},
             "status": {"type": "keyword"},
             "task_id": {"type": "keyword"},
             "duration": {"type": "float"},
@@ -66,21 +68,18 @@ if not es.indices.exists(index=variables.elasticsearch_index):
             "transcription": {
                 "type": "object",
                 "properties": {
-                    "chunks": {
-                        "type": "object",
-                        "properties": {
-                            "text": {
-                                "type": "text",
-                                "fields": {
-                                    "keyword": {
-                                        "type": "keyword",
-                                        "ignore_above": 256
-                                    }
-                                }
-                            },
-                            "timestamp": {"type": "float"}
+                    "text": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
                         }
-                    }
+                    },
+                    "start": {"type": "float"},
+                    "end": {"type": "float"},
+                    "speaker_id": {"type": "integer"}
                 }
             },
             "unique_uuid": {"type": "keyword"},
@@ -108,5 +107,9 @@ celery = Celery(
 celery.conf.update({
     'broker_connection_retry': True,
     'broker_connection_retry_on_startup': True,
-    'worker_send_task_events': True
+    'worker_send_task_events': True,
+    'task_routes': {
+        "celery_worker.worker.worker.transcribe_scribe_v1": {"queue": "scribe_v1_queue"},
+        "celery_worker.worker.worker.transcribe_openai_whisper": {"queue": "openai_whisper_queue"},
+    }
 })

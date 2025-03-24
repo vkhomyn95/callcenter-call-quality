@@ -7,11 +7,12 @@ elasticsearch
 mariadb==1.1.8
 httpx[http2]
 pydantic
-transformers
-datasets
+#transformers
+#datasets
 scipy
 torch
 accelerate
 ffmpeg-python
 pymysql
 elevenlabs
+openai

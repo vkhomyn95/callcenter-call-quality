@@ -61,29 +61,40 @@ class Resampler:
 
         """ Split channels to separate mono file if upload file is stereo. """
         save_dir = self.get_save_directory(received_date)
-        if info.num_channels > 1:
-            for channel in range(info.num_channels):
-                file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(channel) + ".wav")
-                torchaudio.save(
-                    file_path,
-                    waveform[channel].unsqueeze(0),
-                    sample_rate=self.default_sample_rate,
-                    format=self.default_audio_format
-                )
-                files.append(file_path)
-                logging.info(
-                    f'  == Request {self.unique_uuid} split channel {channel} to mono and saved file as {file_path}.'
-                )
-        else:
-            file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
-            torchaudio.save(
-                file_path,
-                waveform,
-                sample_rate=self.default_sample_rate,
-                format=self.default_audio_format
-            )
-            files.append(file_path)
-            logging.info(
-                f'  == Request {self.unique_uuid} saved file as {file_path}.'
-            )
+        # if info.num_channels > 1:
+        #     for channel in range(info.num_channels):
+        #         file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(channel) + ".wav")
+        #         torchaudio.save(
+        #             file_path,
+        #             waveform[channel].unsqueeze(0),
+        #             sample_rate=self.default_sample_rate,
+        #             format=self.default_audio_format
+        #         )
+        #         files.append(file_path)
+        #         logging.info(
+        #             f'  == Request {self.unique_uuid} split channel {channel} to mono and saved file as {file_path}.'
+        #         )
+        # else:
+        #     file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
+        #     torchaudio.save(
+        #         file_path,
+        #         waveform,
+        #         sample_rate=self.default_sample_rate,
+        #         format=self.default_audio_format
+        #     )
+        #     files.append(file_path)
+        #     logging.info(
+        #         f'  == Request {self.unique_uuid} saved file as {file_path}.'
+        #     )
+        file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
+        torchaudio.save(
+            file_path,
+            waveform,
+            sample_rate=self.default_sample_rate,
+            format=self.default_audio_format
+        )
+        files.append(file_path)
+        logging.info(
+            f'  == Request {self.unique_uuid} saved file as {file_path}.'
+        )
         return files

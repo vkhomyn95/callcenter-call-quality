@@ -5,15 +5,16 @@ from io import BytesIO
 
 from celery import Task
 from elevenlabs import ElevenLabs
+from openai import OpenAI
 
 from celery_worker.database.database import pymysql_db
 from celery_worker.hook.hooker import validate_url, send_webhook
-from celery_worker.models.whsiper import WhisperModelProcessor
 from celery_worker.variables import variables
 from celery_worker.worker.start import celery
 
 # whisper = WhisperModelProcessor()
 elevenlabs = ElevenLabs(api_key=variables.elevenlabs_api_key)
+client = OpenAI(api_key=variables.openai_api_key)
 
 
 class CallbackTask(Task):
@@ -127,8 +128,8 @@ class CallbackTask(Task):
             logging.error(f" >> Error sending webhook: {e}")
 
 
-@celery.task(base=CallbackTask, name="transcribe", bind=True)
-def transcribe(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
+@celery.task(base=CallbackTask, name="transcribe_scribe_v1", queue="scribe_v1_queue", bind=True)
+def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription task that processes audio files and returns transcription results.
 
@@ -142,7 +143,7 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
     :param origin: Origin URL for postback.
     :return: A dictionary with transcription metadata and results.
     """
-    transcription_results = []
+    transcription_results = {"words": []}
     transcription_date = datetime.now(timezone.utc).isoformat()[:-9]
 
     for file_path in resampler:
@@ -157,21 +158,17 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
                 file=audio_data,
                 model_id="scribe_v1",
                 tag_audio_events=True,
+                num_speakers=2,
                 diarize=True
             )
             # print(transcription)
-            transcription_results.append({"words": transcription.words})
+            transcription_results["words"] = transcription.words
             # return transcription.text
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
             return None
-
-        # transcription_results.append(transcription)
-    # print()
-    # print("========================")
-    # print(split_replies_by_index(transcription_results))
-    # print("========================")
     return {
+        "model": "scribe_v1",
         "received_date": received_date,
         "transcription_date": transcription_date,
         "start_transcription_date": received_date,
@@ -179,11 +176,48 @@ def transcribe(self, received_date, duration, num_channels, user_id, talk_record
         "num_channels": num_channels,
         "user_id": user_id,
         "talk_record_id": talk_record_id,
-        "transcription": split_replies_by_index(transcription_results),
+        "transcription": split_replies_by_scribe(transcription_results),
         "unique_uuid": unique_uuid,
         "origin": origin
     }
 
+
+@celery.task(name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True)
+def transcribe_openai_whisper(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
+    """
+    Transcription using OpenAI Whisper
+    """
+    transcription_results = {"segments": []}
+    transcription_date = datetime.now(timezone.utc).isoformat()[:-9]
+
+    for file_path in resampler:
+        try:
+            with open(os.path.join(get_save_directory(received_date), file_path), 'rb') as audio_file:
+                transcription = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="verbose_json",
+                    timestamp_granularities=["segment"]
+                )
+
+            transcription_results["segments"] = transcription.segments
+
+        except Exception as e:
+            logging.error(f"OpenAI error processing file {file_path}: {e}")
+            raise self.retry(exc=e)
+
+    return {
+        "model": "openai_whisper",
+        "received_date": received_date,
+        "transcription_date": transcription_date,
+        "duration": duration,
+        "num_channels": num_channels,
+        "user_id": user_id,
+        "talk_record_id": talk_record_id,
+        "transcription": split_replies_by_openai(transcription_results),
+        "unique_uuid": unique_uuid,
+        "origin": origin
+    }
 
 # def process_transcription(file_path):
 #     """
@@ -209,53 +243,64 @@ def get_save_directory(received_date):
     return save_dir
 
 
-def split_replies_by_index(transcription_results):
+def split_replies_by_scribe(transcription_results):
     """
-    Split transcription results into separate replies for each channel based on timestamps.
+    Об'єднує слова у репліки на основі speaker_id та розбиває їх, якщо є поле "characters".
 
-    :param transcription_results: List of transcription results from each channel.
-    :return: A list of two dictionaries, each containing chunks of phrases for a channel.
+    :param transcription_results: Список слів із транскрипції.
+    :return: Список реплік, кожна з яких містить текст, часовий інтервал та ідентифікатор спікера.
     """
-    all_words = []
+    import re
 
-    for idx, result in enumerate(transcription_results):
-        for word in result['words']:
-            if word.type != 'spacing':
-                all_words.append({
-                    "text": word.text,
-                    "start": float(round(word.start, 1)),
-                    "end": float(round(word.end, 1)),
-                    "channel": idx
-                })
+    replies = []
+    current_reply = None
 
-    all_words.sort(key=lambda x: x['start'])
+    for word in transcription_results.get("words", []):
+        speaker = int(re.search(r'\d+', word.speaker_id).group()) if re.search(r'\d+', word.speaker_id) else 0
 
-    channel_replies = {0: [], 1: []}
-    current_reply = {0: None, 1: None}
-
-    for word in all_words:
-        text = word["text"]
-        start = float(round(word["start"], 1))
-        end = float(round(word["end"], 1))
-        channel = word["channel"]
-
-        if current_reply[channel] is None:
-            current_reply[channel] = {
-                "text": text,
-                "timestamp": [float(start), float(end)]
+        if current_reply is None or current_reply["speaker_id"] != speaker:
+            # Початок нової репліки
+            if current_reply:
+                replies.append(current_reply)
+            current_reply = {
+                "text": word.text,
+                "start": word.start,
+                "end": word.end,
+                "speaker_id": speaker
             }
         else:
-            current_reply[channel]["text"] += " " + text
-            current_reply[channel]["timestamp"][1] = end
+            # Продовження поточної репліки
+            current_reply["text"] += " " + word.text
+            current_reply["end"] = word.end
 
-        other_channel = 1 - channel
-        if current_reply[other_channel] is not None:
-            channel_replies[other_channel].append(current_reply[other_channel])
-            current_reply[other_channel] = None
+        # Якщо є ключ "characters", це означає кінець репліки
+        if "characters" in word:
+            replies.append(current_reply)
+            current_reply = None
 
-    for ch in [0, 1]:
-        if current_reply[ch] is not None:
-            channel_replies[ch].append(current_reply[ch])
+    # Додаємо останню репліку, якщо вона є
+    if current_reply:
+        replies.append(current_reply)
+    return replies
 
-    return [{"chunks": channel_replies[0]}, {"chunks": channel_replies[1]}]
+
+def split_replies_by_openai(transcription_results):
+    """
+    Об'єднує слова у репліки на основі speaker_id та розбиває їх, якщо є поле "characters".
+
+    :param transcription_results: Список слів із транскрипції.
+    :return: Список реплік, кожна з яких містить текст, часовий інтервал та ідентифікатор спікера.
+    """
+
+    replies = []
+
+    for word in transcription_results.get("segments", []):
+        replies.append({
+            "text": word.text,
+            "start": word.start,
+            "end": word.end,
+        })
+
+    return replies
+
 

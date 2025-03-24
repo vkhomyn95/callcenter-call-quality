@@ -22,7 +22,8 @@ services:
     volumes:
       - "/stor:/stor"
     command: >
-      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads -E &
+      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=scribe_v1_queue -E &
+             celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=openai_whisper_queue -E &
              python celery_worker/hook/start.py"
 
   communicator:
