@@ -276,14 +276,12 @@
                                 <div class="flex flex-direction-row flex-align-center mb-20">
                                     <label class="label label-required_danger" for="model">Модель</label>
                                     <div class="w-100">
-                                        <input
-                                                class="input"
-                                                type="text"
-                                                id="model"
-                                                name="model"
-                                                value="{{ user.recognition.model if user and user.recognition.model else 'voiptime_default' }}"
-                                                readonly
-                                        />
+                                        <select name="model" id="model" style="width: 300px">
+                                            <option value="0">Оберіть користувача</option>
+                                            <option value="voiptime_default" {% if user and user.recognition.model == 'voiptime_default' %}selected{% endif %}>voiptime_default</option>
+                                            <option value="voiptime_premium" {% if user and user.recognition.model == 'voiptime_premium' %}selected{% endif %}>voiptime_premium</option>
+
+                                        </select>
                                     </div>
                                 </div>
                             </div>
