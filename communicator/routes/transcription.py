@@ -117,12 +117,7 @@ async def transcription(request: Request, transcription_id: str, db: Session = D
     user = load_user_by_id(db, searched_recognition["user_id"]) if searched_recognition is not None else None
 
     if searched_recognition["transcription"]:
-        for recognition in searched_recognition["transcription"]:
-            if recognition:
-                for chunk in recognition["chunks"]:
-                    merged_recognitions.append(chunk)
-                    timestamps.add(chunk["timestamp"][0])
-        merged_recognitions.sort(key=lambda x: x['timestamp'][0])
+        merged_recognitions.extend(searched_recognition["transcription"])
     searched_recognition["result"] = merged_recognitions
     searched_recognition["user"] = user
 
