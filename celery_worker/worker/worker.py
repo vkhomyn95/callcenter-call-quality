@@ -182,7 +182,7 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
     }
 
 
-@celery.task(name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True)
+@celery.task(base=CallbackTask, name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True)
 def transcribe_openai_whisper(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription using OpenAI Whisper
@@ -301,7 +301,7 @@ def split_replies_by_openai(transcription_results):
             "end": word.end,
             "speaker_id": 0
         })
-
+    print(replies)
     return replies
 
 
