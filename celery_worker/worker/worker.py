@@ -299,6 +299,7 @@ def split_replies_by_openai(transcription_results):
             "text": word.text,
             "start": word.start,
             "end": word.end,
+            "speaker_id": 0
         })
 
     return replies
