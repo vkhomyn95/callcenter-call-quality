@@ -76,6 +76,10 @@ class Variables:
         "OPENAI_API_KEY", ""
     )
 
+    gemini_api_key: str = os.getenv(
+        "GEMINI_API_KEY", ""
+    )
+
     app_host: str = os.getenv(
         "APP_HOST", "127.0.0.1"
     )

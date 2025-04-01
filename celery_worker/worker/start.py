@@ -111,5 +111,6 @@ celery.conf.update({
     'task_routes': {
         "celery_worker.worker.worker.transcribe_scribe_v1": {"queue": "scribe_v1_queue"},
         "celery_worker.worker.worker.transcribe_openai_whisper": {"queue": "openai_whisper_queue"},
+        "celery_worker.worker.worker.transcribe_gemini": {"queue": "gemini_queue"},
     }
 })

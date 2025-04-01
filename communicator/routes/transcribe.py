@@ -81,8 +81,15 @@ async def transcribe(
 
     talk_record_id = int(talk_record_id) if talk_record_id else None
 
-    task_name = "transcribe_scribe_v1" if user.recognition.model == "voiptime_premium" else "transcribe_openai_whisper"
-    task_queue = "scribe_v1_queue" if user.recognition.model == "voiptime_premium" else "openai_whisper_queue"
+    if user.recognition.model == "voiptime_premium":
+        task_name = "transcribe_scribe_v1"
+        task_queue = "scribe_v1_queue"
+    elif user.recognition.model == "voiptime_elite":
+        task_name = "transcribe_gemini"
+        task_queue = "gemini_queue"
+    else:
+        task_name = "transcribe_openai_whisper"
+        task_queue = "openai_whisper_queue"
 
     task = celery.send_task(
         task_name,

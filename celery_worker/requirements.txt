@@ -16,3 +16,5 @@ ffmpeg-python
 pymysql
 elevenlabs
 openai
+google
+google.genai

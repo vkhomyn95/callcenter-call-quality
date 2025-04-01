@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from datetime import datetime, timezone
@@ -5,6 +6,8 @@ from io import BytesIO
 
 from celery import Task
 from elevenlabs import ElevenLabs
+from google import genai
+from google.genai import types
 from openai import OpenAI
 
 from celery_worker.database.database import pymysql_db
@@ -15,6 +18,7 @@ from celery_worker.worker.start import celery
 # whisper = WhisperModelProcessor()
 elevenlabs = ElevenLabs(api_key=variables.elevenlabs_api_key)
 client = OpenAI(api_key=variables.openai_api_key)
+gemini = genai.Client(api_key=variables.gemini_api_key)
 
 
 class CallbackTask(Task):
@@ -182,6 +186,75 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
     }
 
 
+@celery.task(base=CallbackTask, name="transcribe_gemini", queue="gemini_queue", bind=True)
+def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
+    """
+    Transcription task that processes audio files and returns transcription results.
+
+    :param received_date: The date the file was received.
+    :param duration: Duration of the audio file.
+    :param num_channels: Number of audio channels.
+    :param user_id: ID of the user requesting transcription.
+    :param talk_record_id: ID of the talk record.
+    :param resampler: Resampled audio file paths.
+    :param unique_uuid: Unique ID for this transcription request.
+    :param origin: Origin URL for postback.
+    :return: A dictionary with transcription metadata and results.
+    """
+    transcription_results = {"words": []}
+    transcription_date = datetime.now(timezone.utc).isoformat()[:-9]
+
+    for file_path in resampler:
+        logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
+
+        try:
+            files = [gemini.files.upload(file=os.path.join(get_save_directory(received_date), file_path))]
+
+            model = "gemini-2.5-pro-exp-03-25"
+
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_uri(
+                            file_uri=files[0].uri,
+                            mime_type=files[0].mime_type,
+                        ),
+                        types.Part.from_text(
+                            text="""
+                                Протранскрибуй розмову.
+                                Добав час старту полем start і кінця репліки полем end.
+                                Також зроби діаризацію спікерів полем speaker_id 0/1/2. 0 відповідає за сторонні звуки.
+                            """),
+                    ]
+                )
+            ]
+
+            generate_content_config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+            )
+
+            transcription = gemini.models.generate_content(model=model, contents=contents, config=generate_content_config)
+            transcription_results["words"] = json.loads(transcription.candidates[0].content.parts[0].text)
+
+        except Exception as e:
+            logging.error(f"Error processing file {file_path}: {e}")
+            return None
+    return {
+        "model": "gemini_v2.5",
+        "received_date": received_date,
+        "transcription_date": transcription_date,
+        "start_transcription_date": received_date,
+        "duration": duration,
+        "num_channels": num_channels,
+        "user_id": user_id,
+        "talk_record_id": talk_record_id,
+        "transcription": split_replies_by_gemini(transcription_results),
+        "unique_uuid": unique_uuid,
+        "origin": origin
+    }
+
+
 @celery.task(base=CallbackTask, name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True)
 def transcribe_openai_whisper(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
@@ -301,7 +374,27 @@ def split_replies_by_openai(transcription_results):
             "end": word.end,
             "speaker_id": 0
         })
-    print(replies)
+
+    return replies
+
+
+def split_replies_by_gemini(transcription_results):
+    """
+    Об'єднує слова у репліки на основі speaker_id та розбиває їх, якщо є поле "characters".
+
+    :param transcription_results: Список слів із транскрипції.
+    :return: Список реплік, кожна з яких містить текст, часовий інтервал та ідентифікатор спікера.
+    """
+
+    replies = []
+
+    for word in transcription_results.get("words", []):
+        replies.append({
+            "text": word["text"],
+            "start": word["start"],
+            "end": word["end"],
+            "speaker_id": word["speaker_id"]
+        })
     return replies
 
 
