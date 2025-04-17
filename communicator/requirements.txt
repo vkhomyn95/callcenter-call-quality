@@ -5,13 +5,14 @@ starlette[full]
 uuid
 Pipenv
 elasticsearch==8.15.1
+elastic-transport==8.15.0
 sqlalchemy
 pymysql
 mysqlclient
 mariadb==1.1.8
 python-dotenv
 python-multipart
-celery
+celery==5.4.0
 torchaudio
 werkzeug
 soundfile

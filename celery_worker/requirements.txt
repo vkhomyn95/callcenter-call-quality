@@ -1,9 +1,10 @@
 rq==1.16.2
 redis
-celery
+celery==5.4.0
 flower
 python-dotenv
-elasticsearch
+elasticsearch==8.15.1
+elastic-transport==8.15.0
 mariadb==1.1.8
 httpx[http2]
 pydantic
