@@ -4,7 +4,7 @@ accelerate
 starlette[full]
 uuid
 Pipenv
-elasticsearch
+elasticsearch==8.15.1
 sqlalchemy
 pymysql
 mysqlclient
