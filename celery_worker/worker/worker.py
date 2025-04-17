@@ -223,7 +223,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
                         types.Part.from_text(
                             text="""
                                 Протранскрибуй розмову.
-                                Добав час старту полем start і кінця репліки полем end.
+                                Добав час старту полем start і кінця репліки полем end, тип повинен повертатись float.
                                 Також зроби діаризацію спікерів полем speaker_id 0/1/2. 0 відповідає за сторонні звуки.
                             """),
                     ]
