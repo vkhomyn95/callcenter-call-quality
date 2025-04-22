@@ -67,7 +67,7 @@ class UserSchema(BaseModel):
     uuid: Optional[str] = None
     audience: Optional[str] = None
     role_id: Optional[int] = None
-    tariff: Optional["TariffSchema"] = None
+    tariff: Optional[list["TariffSchema"]] = None
     recognition: Optional["RecognitionConfigurationSchema"] = None
     role: Optional["UserRoleSchema"] = None
 
