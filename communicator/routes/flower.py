@@ -2,8 +2,9 @@ import json
 import logging
 import time
 import typing
+import weakref
 from functools import total_ordering
-
+from fastapi.encoders import jsonable_encoder
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
@@ -295,57 +296,50 @@ async def flower_tasks_datatable(
     if not session_user:
         return RedirectResponse(url="/login/", status_code=303)
 
-    if await is_admin(request):
-        offset = (page - 1) * limit
-
-        # total_pages = 1 if users_count <= limit else (users_count + (limit - 1)) // limit
-
-        app = request.app.state.flower_app
-
-        def key(item):
-            return Comparable(getattr(item[1], sort_by))
-
-        def format_task(task):
-            uuid, args = task
-            return uuid, args
-
-        sorted_tasks = sorted(
-            iter_tasks(
-                app.events,
-                limit=limit,
-                offset=offset,
-                state=state if state != 'all' else None,
-                search=dict(args=[search]) if search else dict(),
-            )
-        )
-
-        filtered_tasks = []
-
-        for task in sorted_tasks[start:start + length]:
-            task_dict = as_dict(format_task(task)[1])
-            if task_dict.get('worker'):
-                task_dict['worker'] = task_dict['worker'].hostname
-                task_dict.pop("root")
-
-            filtered_tasks.append(task_dict)
-
-        return {
-            "draw": draw,
-            "data": filtered_tasks,
-            "recordsTotal": len(sorted_tasks),
-            "recordsFiltered": len(sorted_tasks),
-            'page': page,
-            'total_pages': 100,
-            'start_page': max(1, page - 2),
-            'end_page': min(100, page + 2),
-        }
-        # except Exception as e:
-        #     logging.error(f"=== An error occurred reading tasks data json: ", e)
-        #     raise HTTPException(
-        #         status_code=500, detail="An error occurred reading tasks data json"
-        #     )
-    else:
+    if not await is_admin(request):
         return RedirectResponse(url="/login/", status_code=303)
+
+    offset = (page - 1) * limit
+
+    app = request.app.state.flower_app
+
+    def key(item):
+        return Comparable(getattr(item[1], sort_by))
+
+    def format_task(task):
+        uuid, args = task
+        return uuid, args
+
+    sorted_tasks = sorted(
+        iter_tasks(
+            app.events,
+            limit=limit,
+            offset=offset,
+            state=state if state != 'all' else None,
+            search=dict(args=[search]) if search else dict(),
+        )
+    )
+
+    filtered_tasks = []
+
+    for task in sorted_tasks[start:start + length]:
+        task_dict = as_dict_ref(format_task(task)[1])
+        if task_dict.get('worker'):
+            task_dict['worker'] = task_dict['worker'].hostname
+            task_dict.pop("root")
+
+        filtered_tasks.append(task_dict)
+
+    return {
+        "draw": draw,
+        "data": filtered_tasks,
+        "recordsTotal": len(sorted_tasks),
+        "recordsFiltered": len(sorted_tasks),
+        'page': page,
+        'total_pages': 100,
+        'start_page': max(1, page - 2),
+        'end_page': min(100, page + 2),
+    }
 
 
 @router.get("/task/{task_id}", response_class=HTMLResponse)
@@ -510,6 +504,28 @@ def info(worker):
 
 async def update_workers(app, worker_name=None):
     return app.inspector.inspect(worker_name)
+
+
+def as_dict_ref(worker):
+    """
+    Convert worker object to dictionary safely.
+    """
+    def safe_get(val):
+        if isinstance(val, weakref.ReferenceType):
+            return safe_get(val())
+        try:
+            jsonable_encoder(val)
+            return val
+        except Exception:
+            return str(val)
+
+    if hasattr(worker, '_fields'):
+        return {k: safe_get(getattr(worker, k)) for k in worker._fields}
+    else:
+        raw = info(worker)
+        if isinstance(raw, dict):
+            return {k: safe_get(v) for k, v in raw.items()}
+        return str(raw)  # fallback
 
 
 def get_active_queue_names(app):
