@@ -7,7 +7,8 @@ from werkzeug.security import generate_password_hash
 
 from communicator.database import UserSchema, RecognitionConfiguration, Tariff, User, UserRole
 from communicator.database.database import get_db
-from communicator.utils.crud import load_user_by_uuid, load_user_by_username, insert_user, increment_user_tariff
+from communicator.utils.crud import load_user_by_uuid, load_user_by_username, insert_user, increment_user_tariff, \
+    insert_user_tariff
 from communicator.variables import variables
 
 router = APIRouter()
@@ -80,6 +81,7 @@ async def create_user(
     user.recognition = RecognitionConfiguration()
 
     inserted_user = insert_user(db, user)
+    insert_user_tariff(db, user)
 
     return {
         "success": True,
@@ -92,6 +94,7 @@ def increment_user_license(
         uuid: str,
         access_token: str = Query(None, alias="access_token"),
         count: int = Query(0, alias="count"),
+        model_id: int = Query(0, alias="model_id"),
         db: Session = Depends(get_db)
 ):
     if not access_token or access_token == "":
@@ -111,6 +114,15 @@ def increment_user_license(
     if not user:
         return {"success": False, "data": "User does not exist with requested uuid"}
 
-    increment_user_tariff(db, user.tariff.id, count)
+    tariff = None
+
+    for tariff in user.tariffs:
+        if tariff.model.id == model_id:
+            tariff = tariff
+
+    if tariff is None:
+        return {"success": False, "data": "User does not have any tariff by current model id"}
+
+    increment_user_tariff(db, tariff.id, count)
 
     return {"success": True, "data": "Successfully incremented user tariff"}

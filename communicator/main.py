@@ -9,11 +9,13 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from communicator.app import Flower
+from communicator.database.database import get_db
 from communicator.logger.logger import Logger
 from communicator.routes import CustomHTTPException, flower
 from communicator.routes import auth, transcribe, api, transcription, hook
 
 from communicator.routes import user
+from communicator.utils.crud import insert_default_models_and_tariffs, insert_default_user, insert_default_roles
 from communicator.variables import variables
 
 app = FastAPI()
@@ -41,6 +43,14 @@ app.include_router(user.router, prefix="/users")
 app.include_router(transcription.router, prefix="/transcriptions")
 app.include_router(hook.router, prefix="/webhooks")
 app.include_router(flower.router, prefix="/flowers")
+
+db = next(get_db())
+
+insert_default_roles(db)
+
+insert_default_user(db)
+
+insert_default_models_and_tariffs(db)
 
 flower_app = Flower()
 

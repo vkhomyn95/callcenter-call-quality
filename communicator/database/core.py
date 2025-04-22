@@ -6,17 +6,34 @@ from sqlalchemy.orm import relationship
 from communicator.database.database import Base, engine
 
 
+class Model(Base):
+    __tablename__ = "model"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(VARCHAR(128), unique=True, nullable=False)
+
+    task_name = Column(VARCHAR(128), nullable=False)
+    task_queue = Column(VARCHAR(128), nullable=False)
+
+    tariffs = relationship("Tariff", back_populates="model")
+
+
 class Tariff(Base):
     __tablename__ = "tariff"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+
     created_date = Column(DateTime, default=datetime.utcnow(), nullable=True)
     updated_date = Column(DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow(), nullable=True)
+
     active = Column(Boolean, default=False)
     total = Column(Integer, default=0)
-    user_id = Column(Integer, ForeignKey('user.id'), unique=True)
+
+    user_id = Column(Integer, ForeignKey('user.id'))
+    model_id = Column(Integer, ForeignKey("model.id"))
 
     user = relationship("User", back_populates="tariff")
+    model = relationship("Model", back_populates="tariffs")
 
 
 class UserRole(Base):
@@ -59,8 +76,10 @@ class User(Base):
     audience = Column(VARCHAR(255), nullable=True)
     role_id = Column(Integer, ForeignKey('user_role.id'))
 
-    tariff = relationship('Tariff', uselist=False, back_populates="user")
+    tariff = relationship('Tariff', back_populates="user", cascade="all, delete-orphan")
+
     recognition = relationship('RecognitionConfiguration', uselist=False, back_populates="user")
+
     role = relationship('UserRole', back_populates='users')
 
 

@@ -15,7 +15,7 @@ from communicator.utils.crud import (
     load_user_by_username,
     insert_user,
     load_user_by_id,
-    load_simple_users
+    load_simple_users, load_models, insert_user_tariff
 )
 from communicator.variables import variables
 
@@ -50,7 +50,6 @@ async def users(
         users_count = count_users(db)
         total_pages = 1 if users_count <= limit else (users_count + (limit - 1)) // limit
 
-        # Render the template with the data
         return templates.TemplateResponse(
             'users.html',
             {
@@ -140,7 +139,6 @@ async def user_create(request: Request, db: Session = Depends(get_db)):
             form.get("username"),
             form.get("email")
         )
-
         if searched_user:
             flash(
                 request, "User with username {} or email {} already exists".format(
@@ -149,10 +147,10 @@ async def user_create(request: Request, db: Session = Depends(get_db)):
             )
             new_user = User(
                 role_id=2,
-                tariff=Tariff(),
                 recognition=RecognitionConfiguration()
             )
             update_user(form, new_user)
+            insert_user_tariff(db, new_user)
             return templates.TemplateResponse(
                 'user.html',
                 {
@@ -164,11 +162,11 @@ async def user_create(request: Request, db: Session = Depends(get_db)):
         else:
             new_user = User(
                 role_id=2,
-                tariff=Tariff(),
                 recognition=RecognitionConfiguration()
             )
             update_user(form, new_user)
             insert_user(db, new_user)
+            insert_user_tariff(db, new_user)
             return RedirectResponse(url="/users/", status_code=303)
     else:
         return RedirectResponse(url="/login/", status_code=303)
@@ -341,16 +339,20 @@ def update_user(form, u: User):
     u.email = form.get("email", u.email)
     u.phone = form.get("phone", u.phone)
     u.username = form.get("username", u.username)
+
     if form.get("password") and form.get("password") != "":
         u.password = generate_password_hash(form.get("password"))
+
     u.api_key = form.get("api_key", u.api_key)
     u.audience = form.get("audience", u.audience)
-    u.tariff.active = True if form.get("active", u.tariff.active) == "True" else False
-    u.recognition.model = form.get("model", u.recognition.model)
+    u.recognition.model = form.get("model")
     u.recognition.task_id = form.get("task_id", u.recognition.task_id)
     u.recognition.batch_size = form.get("batch_size", u.recognition.batch_size)
     u.recognition.chunk_length = form.get("chunk_length", u.recognition.chunk_length)
     u.recognition.sample_rate = form.get("sample_rate", u.recognition.sample_rate)
+
+    for tariff in u.tariff:
+        tariff.active = (tariff.model.name == form.get("model")) and form.get("active", False) == "True"
 
 
 async def get_user(request: Request) -> dict:

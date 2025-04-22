@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 from werkzeug.security import generate_password_hash
 
-from communicator.database import UserRole, UserSchema, User, RecognitionConfiguration, Tariff
+from communicator.database import UserRole, UserSchema, User, RecognitionConfiguration, Tariff, Model
 from communicator.variables import variables
 
 
@@ -23,9 +23,56 @@ def insert_default_roles(db: Session) -> None:
         db.close()
 
 
+def insert_default_models_and_tariffs(db: Session) -> None:
+    try:
+        default_models = {
+            "openai_whisper": {
+                "task_name": "transcribe_openai_whisper",
+                "task_queue": "openai_whisper_queue"
+            },
+            "voiptime_premium": {
+                "task_name": "transcribe_scribe_v1",
+                "task_queue": "scribe_v1_queue"
+            },
+            "voiptime_elite": {
+                "task_name": "transcribe_gemini",
+                "task_queue": "gemini_queue"
+            }
+        }
+        existing_models = {m.name for m in db.query(Model).all()}
+
+        for model_name, task_info in default_models.items():
+            if model_name not in existing_models:
+                db.add(Model(
+                    name=model_name,
+                    task_name=task_info["task_name"],
+                    task_queue=task_info["task_queue"]
+                ))
+        db.commit()
+
+        models = db.query(Model).all()
+
+        users = db.query(User).all()
+        for user in users:
+            for model in models:
+                exists = db.query(Tariff).filter_by(user_id=user.id, model_id=model.id).first()
+                if not exists:
+                    db.add(Tariff(user_id=user.id, model_id=model.id, total=0))
+
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        print(f">>>Error inserting models or tariffs: {e}")
+    finally:
+        db.close()
+
+
 def insert_default_user(db: Session) -> UserSchema:
     try:
         if not db.query(User).filter(User.username == "admin").first():
+            models = db.query(Model).all()
+
             default_user = User(
                 username="admin",
                 password=generate_password_hash(variables.admin_default_password),
@@ -33,10 +80,16 @@ def insert_default_user(db: Session) -> UserSchema:
                 last_name="VoIPTime",
                 email="support@voiptime.net",
                 role_id=1,
-                tariff=Tariff(),
                 recognition=RecognitionConfiguration()
             )
             db.add(default_user)
+            db.commit()
+
+            for model in models:
+                exists = db.query(Tariff).filter_by(user_id=default_user.id, model_id=model.id).first()
+                if not exists:
+                    db.add(Tariff(user_id=default_user.id, model_id=model.id, total=0))
+
             db.commit()
             return UserSchema.from_orm(default_user)
     except Exception as e:
@@ -51,6 +104,21 @@ def insert_user(db: Session, user: User) -> UserSchema:
         db.add(user)
         db.commit()
         return UserSchema.from_orm(user)
+    except Exception as e:
+        db.rollback()
+        print(f">>>Error inserting default user: {e}")
+    finally:
+        db.close()
+
+
+def insert_user_tariff(db: Session, user: User) -> UserSchema:
+    try:
+        default_models = db.query(Model).all()
+        for model in default_models:
+            if not db.query(Tariff).filter_by(user_id=user.id, model_id=model.id).first():
+                tariff = Tariff(user_id=user.id, model_id=model.id, total=0)
+                db.add(tariff)
+        db.commit()
     except Exception as e:
         db.rollback()
         print(f">>>Error inserting default user: {e}")
@@ -145,3 +213,10 @@ def decrement_user_tariff(db: Session, tariff_id: int, count: int):
         db.rollback()
         return {"success": False, "data": str(e)}
 
+
+def load_models(db: Session):
+    try:
+        return db.query(Model).all()
+    except Exception as e:
+        logging.error(f'  >> Error: {e}')
+        return {"success": False, "data": str(e)}

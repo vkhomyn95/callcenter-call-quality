@@ -4,6 +4,17 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class ModelSchema(BaseModel):
+    id: Optional[int]
+    name: Optional[str]
+    task_queue: Optional[str]
+    task_name: Optional[str]
+
+    class Config:
+        from_attributes = True
+        extra = 'ignore'
+
+
 class TariffSchema(BaseModel):
 
     id: Optional[int]
@@ -12,6 +23,7 @@ class TariffSchema(BaseModel):
     active: Optional[bool]
     total: Optional[int]
     user_id: Optional[int]
+    model: Optional["ModelSchema"] = None
 
     class Config:
         from_attributes = True

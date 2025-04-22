@@ -221,17 +221,22 @@
                                     <label class="label label-required_danger">Активна</label>
                                     <div class="w-100">
                                         <span id="toggleActive">
-                                            {% if user.tariff.active %}
-                                                <span onclick="toggleUserActive(true)">
-                                                    {% include 'header/icons/icon-square-checked.html' %}
-                                                    <input type="hidden" id="activeChecked" name="active" value="True">
+                                            {% for tariff in user.tariff %}
+                                                {% set model = tariff.model.name %}
+                                                <span id="active-{{ model }}" style="{% if user.recognition.model != model %}display:none;{% endif %}">
+                                                    {% if tariff.active %}
+                                                        <span onclick="toggleUserActive(true)">
+                                                            {% include 'header/icons/icon-square-checked.html' %}
+                                                            <input type="hidden" name="active" value="True">
+                                                        </span>
+                                                    {% else %}
+                                                        <span onclick="toggleUserActive(false)">
+                                                            {% include 'header/icons/icon-square.html' %}
+                                                            <input type="hidden" name="active" value="False">
+                                                        </span>
+                                                    {% endif %}
                                                 </span>
-                                            {% else %}
-                                                <span onclick="toggleUserActive(false)">
-                                                    {% include 'header/icons/icon-square.html' %}
-                                                    <input type="hidden" id="activeNotChecked" name="active" value="False">
-                                                </span>
-                                            {% endif %}
+                                            {% endfor %}
                                         </span>
                                     </div>
                                 </div>
@@ -239,9 +244,11 @@
                                 <div class="flex flex-direction-row flex-align-center mb-20">
                                     <label class="label label-required_danger">Загалом (хв)</label>
                                     <div class="w-100">
-                                        <div>
-                                            {{ "%.2f" | format(user.tariff.total / 60) if user and user.tariff.total else "0.00" }}
-                                        </div>
+                                        {% for tariff in user.tariff %}
+                                            <div id="total-{{ tariff.model.name }}" style="{% if user.recognition.model != tariff.model.name %}display:none;{% endif %}">
+                                                {{ "%.2f"|format(tariff.total / 60) }}
+                                            </div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
@@ -276,16 +283,19 @@
                                 <div class="flex flex-direction-row flex-align-center mb-20">
                                     <label class="label label-required_danger" for="model">Модель</label>
                                     <div class="w-100">
-                                        <select name="model" id="model" style="width: 300px">
-                                            <option value="0">Оберіть користувача</option>
-                                            <option value="voiptime_default" {% if user and user.recognition.model == 'voiptime_default' %}selected{% endif %}>voiptime_default</option>
-                                            <option value="voiptime_premium" {% if user and user.recognition.model == 'voiptime_premium' %}selected{% endif %}>voiptime_premium</option>
-                                            <option value="voiptime_elite" {% if user and user.recognition.model == 'voiptime_elite' %}selected{% endif %}>voiptime_elite</option>
-
+                                        <select name="model" id="model" style="width: 300px" onchange="updateTariffInfo()">
+                                            <option value="0">Оберіть модель</option>
+                                            {% for tariff in user.tariff %}
+                                                {% set model = tariff.model %}
+                                                <option value="{{ model.name }}" {% if user.recognition.model == model.name %}selected{% endif %}>
+                                                    {{ model.name }}
+                                                </option>
+                                            {% endfor %}
                                         </select>
                                     </div>
                                 </div>
                             </div>
+
                             <div class="voice-tab is-hidden">
                                 <div class="flex flex-direction-row flex-align-center mb-20">
                                     <label class="label label-required_danger" for="sample_rate">Частота</label>
@@ -327,6 +337,19 @@
     </div>
 </div>
 <script>
+    function updateTariffInfo() {
+        const selectedModel = document.getElementById("model").value;
+
+        document.querySelectorAll("[id^='active-']").forEach(el => el.style.display = 'none');
+        document.querySelectorAll("[id^='total-']").forEach(el => el.style.display = 'none');
+
+        const active = document.getElementById("active-" + selectedModel);
+        const total = document.getElementById("total-" + selectedModel);
+
+        if (active) active.style.display = '';
+        if (total) total.style.display = '';
+    }
+
     function changeRecognitionTab(el, tab) {
         el.classList.add("is-active");
         if (tab === 'interim') {

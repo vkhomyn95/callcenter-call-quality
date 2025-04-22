@@ -13,6 +13,7 @@ from starlette import status
 from starlette.requests import Request
 from torchaudio import AudioMetaData
 
+from communicator.database import Model, Tariff
 from communicator.database.database import get_db
 from communicator.utils.crud import load_user_by_api_key, decrement_user_tariff
 from communicator.job.start import celery
@@ -65,14 +66,34 @@ async def transcribe(
     unique_uuid = str(uuid.uuid4())
 
     audio = await file.read()
+
     info: AudioMetaData = torchaudio.info(BytesIO(audio))
+
     duration = info.num_frames / info.sample_rate
 
     user = load_user_by_api_key(db, token)
-    if user is None or user.tariff.total < duration:
+
+    if user is None:
         raise CustomHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f'Not valid access_token or tariff limit reached. Required {duration} seconds'
+            detail=f'Not valid access_token'
+        )
+
+    tariff = None
+    for tariff in user.tariff:
+        if tariff.model.name == user.recognition.model and tariff.active:
+            tariff = tariff
+
+    if tariff is None:
+        raise CustomHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f'Tariff license for {user.recognition.model} model does not exist or inactive.'
+        )
+
+    if tariff.total < duration:
+        raise CustomHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f'Current tariff license quota {tariff.total} is less than required {duration} seconds.'
         )
 
     received_date = datetime.now(timezone.utc).isoformat()[:-9]
@@ -81,23 +102,13 @@ async def transcribe(
 
     talk_record_id = int(talk_record_id) if talk_record_id else None
 
-    if user.recognition.model == "voiptime_premium":
-        task_name = "transcribe_scribe_v1"
-        task_queue = "scribe_v1_queue"
-    elif user.recognition.model == "voiptime_elite":
-        task_name = "transcribe_gemini"
-        task_queue = "gemini_queue"
-    else:
-        task_name = "transcribe_openai_whisper"
-        task_queue = "openai_whisper_queue"
-
     task = celery.send_task(
-        task_name,
+        tariff.model.task_name,
         args=[received_date, duration, info.num_channels, user.id, talk_record_id, resampler, unique_uuid, origin],
-        queue=task_queue
+        queue=tariff.model.task_queue
     )
 
-    decrement_user_tariff(db, user.tariff.id, round(duration))
+    decrement_user_tariff(db, tariff.id, round(duration))
 
     return TranscriptionResponse(unique_uuid, task.id, task.status, talk_record_id)
 
