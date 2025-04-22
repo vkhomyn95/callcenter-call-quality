@@ -103,7 +103,8 @@ def insert_user(db: Session, user: User) -> UserSchema:
     try:
         db.add(user)
         db.commit()
-        return UserSchema.from_orm(user)
+        db.refresh(user)
+        return user
     except Exception as e:
         db.rollback()
         print(f">>>Error inserting default user: {e}")

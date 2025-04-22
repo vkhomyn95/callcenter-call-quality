@@ -80,7 +80,7 @@ async def create_user(
     user.tariff = Tariff()
     user.recognition = RecognitionConfiguration()
 
-    inserted_user = insert_user(db, user)
+    inserted_user = UserSchema.from_orm(insert_user(db, user))
     insert_user_tariff(db, user)
 
     return {
