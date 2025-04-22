@@ -165,9 +165,7 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
                 num_speakers=2,
                 diarize=True
             )
-            # print(transcription)
             transcription_results["words"] = transcription.words
-            # return transcription.text
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
             return None
@@ -223,7 +221,8 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
                         types.Part.from_text(
                             text="""
                                 Протранскрибуй розмову.
-                                Добав час старту полем start і кінця репліки полем end, тип повинен повертатись float.
+                                Добав час старту полем start і кінця репліки полем end, тип повинен повертатись float. 
+                                Репліка у полі text повинна повертатись.
                                 Також зроби діаризацію спікерів полем speaker_id 0/1/2. 0 відповідає за сторонні звуки.
                             """),
                     ]
@@ -291,19 +290,6 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
         "unique_uuid": unique_uuid,
         "origin": origin
     }
-
-# def process_transcription(file_path):
-#     """
-#     Helper function to process the transcription of a file.
-#
-#     :param file_path: The file path to the audio file.
-#     :return: The transcription result without the 'text' key.
-#     """
-#
-#     transcription = whisper.pipe(file_path, return_timestamps=True)
-#     print(transcription)
-#     transcription.pop('text', None)
-#     return transcription
 
 
 def get_save_directory(received_date):

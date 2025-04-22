@@ -8,10 +8,7 @@ elastic-transport==8.15.0
 mariadb==1.1.8
 httpx[http2]
 pydantic
-#transformers
-#datasets
 scipy
-torch
 accelerate
 ffmpeg-python
 pymysql
