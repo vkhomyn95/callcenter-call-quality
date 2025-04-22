@@ -149,7 +149,7 @@ async def user_create(request: Request, db: Session = Depends(get_db)):
                 recognition=RecognitionConfiguration()
             )
             update_user(form, new_user)
-            new_user = insert_user_tariff(db, new_user)
+            insert_user_tariff(db, new_user)
             return templates.TemplateResponse(
                 'user.html',
                 {
