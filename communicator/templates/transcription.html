@@ -61,24 +61,11 @@
                             <div class="flex flex-direction-column py-20 pb-10">
                                 <div>Аудіозаписи</div>
                                 <div class="flex flex-direction-column ml-10 pt-10">
-                                    {% if recognition.num_channels and recognition.num_channels > 1 %}
-                                    {% for r in range(recognition.num_channels) %}
-                                    {% if recognition.unique_uuid %}
-                                    Канал {{ r + 1 }}:
-                                    <audio controls>
-                                        <source
-                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=r, received_date=recognition.received_date) }}"
-                                                type="audio/wav"
-                                        >
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                    {% endif %}
-                                    {% endfor %}
-                                    {% else %}
+                                    {% if recognition.num_channels %}
                                     {% if recognition.unique_uuid %}
                                     <audio controls>
                                         <source
-                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=1, received_date=recognition.received_date) }}"
+                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=recognition.num_channels, received_date=recognition.received_date) }}"
                                                 type="audio/wav"
                                         >
                                         Your browser does not support the audio element.
