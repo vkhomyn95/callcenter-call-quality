@@ -14,11 +14,13 @@ from celery_worker.database.database import pymysql_db
 from celery_worker.hook.hooker import validate_url, send_webhook
 from celery_worker.variables import variables
 from celery_worker.worker.start import celery
+from celery_worker.worker.telegram import TelegramBot
 
-# whisper = WhisperModelProcessor()
 elevenlabs = ElevenLabs(api_key=variables.elevenlabs_api_key)
 client = OpenAI(api_key=variables.openai_api_key)
 gemini = genai.Client(api_key=variables.gemini_api_key)
+
+telegram = TelegramBot(variables.telegram_bot_token)
 
 
 class CallbackTask(Task):
@@ -168,7 +170,14 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
             transcription_results["words"] = transcription.words
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
-            return None
+
+            telegram.send_message(f"❌ Не вдалось протранскрибувати файл elevenlabs: {file_path}. "
+                                  f"\n ❌ Помилка: {e}. "
+                                  f"\n ✅ Повторний запит через: {10 * 600} секунд"
+                                  f"\n🦒 Користувач: {user_id}"
+                                  f"\n 🌕 Запис розмови: {talk_record_id}")
+
+            raise self.retry(exc=e, countdown=10 * 60)
     return {
         "model": "scribe_v1",
         "received_date": received_date,
@@ -238,7 +247,14 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
 
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
-            return None
+
+            telegram.send_message(f"❌ Не вдалось протранскрибувати файл gemini: {file_path}. "
+                                  f"\n ❌ Помилка: {e}. "
+                                  f"\n ✅ Повторний запит через: {10*600} секунд"
+                                  f"\n🦒 Користувач: {user_id}"
+                                  f"\n 🌕 Запис розмови: {talk_record_id}")
+
+            raise self.retry(exc=e, countdown=10*60)
     return {
         "model": "gemini_v2.5",
         "received_date": received_date,
@@ -276,7 +292,14 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
 
         except Exception as e:
             logging.error(f"OpenAI error processing file {file_path}: {e}")
-            raise self.retry(exc=e)
+
+            telegram.send_message(f"❌ Не вдалось протранскрибувати файл whisper: {file_path}. "
+                                  f"\n ❌ Помилка: {e}. "
+                                  f"\n ✅ Повторний запит через: {10 * 600} секунд"
+                                  f"\n🦒 Користувач: {user_id}"
+                                  f"\n 🌕 Запис розмови: {talk_record_id}")
+
+            raise self.retry(exc=e, countdown=10*60)
 
     return {
         "model": "openai_whisper",

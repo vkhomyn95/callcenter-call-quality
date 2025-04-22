@@ -13,7 +13,6 @@ from communicator.database.database import get_db
 from communicator.logger.logger import Logger
 from communicator.routes import CustomHTTPException, flower
 from communicator.routes import auth, transcribe, api, transcription, hook
-
 from communicator.routes import user
 from communicator.utils.crud import insert_default_models_and_tariffs, insert_default_user, insert_default_roles
 from communicator.variables import variables

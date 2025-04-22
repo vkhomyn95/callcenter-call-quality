@@ -170,5 +170,9 @@ class Variables:
         5555
     ))
 
+    telegram_bot_token: str = os.getenv(
+        "TELEGRAM_TOKEN", ""
+    )
+
 
 variables = Variables()

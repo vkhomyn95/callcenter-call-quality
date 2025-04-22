@@ -317,7 +317,7 @@ input[type="radio"] {
 .card {
     background: #ffffff;
     width: 100%;
-    border-radius: 20px;
+    border-radius: 5px;
 }
 .card-title {
     color: #00475A;

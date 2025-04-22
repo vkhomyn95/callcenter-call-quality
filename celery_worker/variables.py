@@ -77,7 +77,7 @@ class Variables:
     )
 
     gemini_api_key: str = os.getenv(
-        "GEMINI_API_KEY", ""
+        "GEMINI_API_KEY", "dd"
     )
 
     app_host: str = os.getenv(
@@ -90,8 +90,13 @@ class Variables:
     logger_dir: str = os.getenv(
         "LOGGER_DIR", "/stor/data/logs/server/"
     )
+
     file_dir: str = os.getenv(
         "FILE_DIR", "/stor/data/transcription/"
+    )
+
+    telegram_bot_token: str = os.getenv(
+        "TELEGRAM_TOKEN", ""
     )
 
 
