@@ -217,7 +217,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
         try:
             files = [gemini.files.upload(file=os.path.join(get_save_directory(received_date), file_path))]
 
-            model = "gemini-2.5-pro-preview-03-25s"
+            model = "gemini-2.5-pro-preview-03-25"
 
             contents = [
                 types.Content(
