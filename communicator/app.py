@@ -49,7 +49,8 @@ class Flower(tornado.web.Application):
             io_loop=self.io_loop,
             max_workers_in_memory=variables.flower_max_workers,
             max_tasks_in_memory=variables.flower_max_tasks,
-            limit_tasks_by_type=variables.flower_state_cleaner
+            limit_task_interval=variables.flower_state_cleaner_interval,
+            limit_task_count=variables.flower_state_cleaner_max_size
         )
         self.started = False
 

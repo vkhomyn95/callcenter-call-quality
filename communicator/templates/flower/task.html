@@ -26,10 +26,23 @@
         <div class="content flex flex-direction-row">
             <div class="card-wrapper">
                 <div class="card" style="height: 100%">
-                    <div class="p-20">
-                        <span class="card-title">
+                    <div class="p-20 flex flex-align-center flex-content-between">
+                        <div class="card-title">
                             Загальна інформація
-                        </span>
+                        </div>
+                        <div>
+                            <button class="button button-main button-xs">
+                                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12.9994 19.0016L14.7495 15.7741L11.4994 14.0016M6.99951 1.00391L5.24968 4.22838L8.49945 6.00158M16.4522 12.7165C17.0208 11.3653 17.1508 9.8696 16.8238 8.44044C16.4967 7.01128 15.7292 5.72079 14.6294 4.75104C13.5297 3.78128 12.1532 3.18122 10.6943 3.0355C9.2353 2.88978 7.7675 3.20577 6.49791 3.93887M3.547 7.286C2.97838 8.63721 2.84842 10.1329 3.17547 11.5621C3.50252 12.9912 4.27006 14.2817 5.36982 15.2515C6.46957 16.2212 7.84602 16.8213 9.30497 16.967C10.7639 17.1127 12.2317 16.7967 13.5013 16.0636" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M9.44141 11.5391L13.0002 7.98024" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                                    <path d="M9.44141 11.5391L7.50023 9.59789" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+
+                                <a href="#" onclick="revokeTask('{{ task['uuid'] }}')" style="text-decoration: none">
+                                    <span style="margin-left: 10px; color: #ffffff;">Відкликати задачу</span>
+                                </a>
+                            </button>
+                        </div>
                     </div>
                     <div class="card-border"></div>
                     <div class="card-body">
@@ -112,6 +125,69 @@
         } else {
             window.location.href = document.referrer;
         }
+    }
+
+    function showNotification(message) {
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast success">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+
+      function showErrorNotification(message) {
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML =  `
+            <li class="toast error">
+                <div class="column">
+                   {% include 'header/icons/icon-error.html' %}
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+
+     function revokeTask(taskId) {
+        fetch(`/flowers/task/${taskId}/revoke`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                showNotification("Задачу відкликано");
+            } else {
+                showErrorNotification("Помилка при відкликанні задачі");
+            }
+        });
     }
 </script>
 </html>

@@ -165,7 +165,7 @@ async def flower_worker(
                 "current_user": session_user
             })
         except Exception as e:
-            logging.error(f"=== An error occurred reading flower worker data template: ", e)
+            logging.error(f"=== An error occurred reading flower worker data template: {e}")
             raise HTTPException(
                 status_code=500,
                 detail="An error occurred reading flower worker data template {}".format(e),
@@ -316,9 +316,12 @@ async def flower_tasks_datatable(
             limit=limit,
             offset=offset,
             state=state if state != 'all' else None,
-            search=dict(args=[search]) if search else dict(),
+            search=f"uuid:{search}" if search else None,
         )
     )
+
+    total =  len(app.events.state.tasks)
+    total_pages = 1 if total <= limit else (total + (limit - 1)) // limit
 
     filtered_tasks = []
 
@@ -329,20 +332,19 @@ async def flower_tasks_datatable(
             task_dict.pop("root")
 
         filtered_tasks.append(task_dict)
-
     return {
         "draw": draw,
         "data": filtered_tasks,
         "recordsTotal": len(sorted_tasks),
         "recordsFiltered": len(sorted_tasks),
         'page': page,
-        'total_pages': 100,
+        'total_pages': total_pages,
         'start_page': max(1, page - 2),
-        'end_page': min(100, page + 2),
+        'end_page': min(total_pages, page + 2),
     }
 
 
-@router.get("/task/{task_id}", response_class=HTMLResponse)
+@router.get("/task/{task_id}", response_class=HTMLResponse, name='flower_task')
 async def flower_task(
         request: Request,
         task_id: str
@@ -382,6 +384,17 @@ async def flower_task(
             )
     else:
         return RedirectResponse(url="/login/", status_code=303)
+
+
+@router.post("/task/{task_id}/revoke")
+async def revoke_task(request: Request, task_id: str):
+    app = request.app.state.flower_app.capp
+
+    try:
+        app.control.revoke(task_id, terminate=True, signal="SIGKILL")
+        return JSONResponse({"status": "ok"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @router.get("/broker", response_class=HTMLResponse)

@@ -29,6 +29,10 @@ def parse_search_terms(raw_search_value):
             if 'state' not in parsed_search:
                 parsed_search['state'] = []
             parsed_search['state'].append(preprocess_search_value(query_part[len('state:'):]))
+        elif query_part.startswith('uuid'):
+            if 'uuid' not in parsed_search:
+                parsed_search['uuid'] = []
+            parsed_search['uuid'].append(preprocess_search_value(query_part[len('uuid:'):]))
         else:
             parsed_search['any'] = preprocess_search_value(query_part)
     return parsed_search
@@ -40,12 +44,14 @@ def satisfies_search_terms(task, search_terms):
     args_search_terms = search_terms.get('args')
     kwargs_search_terms = search_terms.get('kwargs')
     state_search_terms = search_terms.get('state')
+    state_search_terms_uuid = search_terms.get('uuid')
 
-    if not any([any_value_search_term, result_search_term, args_search_terms, kwargs_search_terms, state_search_terms]):
+    if not any([any_value_search_term, result_search_term, args_search_terms, kwargs_search_terms, state_search_terms, state_search_terms_uuid]):
         return True
 
     terms = [
         state_search_terms and task.state in state_search_terms,
+        state_search_terms_uuid and task.uuid in state_search_terms_uuid,
         any_value_search_term and any_value_search_term in '|'.join(
             filter(None, [task.name, task.uuid, task.state,
                           task.worker.hostname if task.worker else None,

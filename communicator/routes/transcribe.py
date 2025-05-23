@@ -80,9 +80,9 @@ async def transcribe(
         )
 
     tariff = None
-    for tariff in user.tariff:
-        if tariff.model.name == user.recognition.model and tariff.active:
-            tariff = tariff
+    for plan in user.tariff:
+        if plan.model.name == user.recognition.model and plan.active:
+            tariff = plan
 
     if tariff is None:
         raise CustomHTTPException(

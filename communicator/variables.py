@@ -8,13 +8,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def load_flower_state_cleaner() -> List[Dict]:
-    return json.loads(os.getenv(
-        "FLOWER_STATE_CLEANER",
-        '[{"type": "transcribe", "max_count": 100, "timedelta": 30}]'
-    ))
-
-
 @dataclass(frozen=True)
 class Variables:
     """ This class is responsible for saving and
@@ -93,11 +86,6 @@ class Variables:
         30.0
     ))
 
-    whisper_model: str = os.getenv(
-        "WHISPER_MODEL",
-        "openai/whisper-large-v3"
-    )
-
     app_host: str = os.getenv(
         "APP_HOST",
         "127.0.0.1"
@@ -146,9 +134,14 @@ class Variables:
         "FLOWER_STATE_SAVE_FAILED",
         False
     ))
-    flower_state_cleaner: list = field(
-        default_factory=load_flower_state_cleaner
-    )
+    flower_state_cleaner_interval: int = int(os.getenv(
+        "FLOWER_STATE_CLEANER_INTERVAL",
+        10
+    ))
+    flower_state_cleaner_max_size: int = int(os.getenv(
+        "FLOWER_STATE_CLEANER_MAX_SIZE",
+        100
+    ))
     flower_max_workers: int = int(os.getenv(
         "FLOWER_MAX_WORKERS",
         5000

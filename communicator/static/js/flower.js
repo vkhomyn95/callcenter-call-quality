@@ -5,6 +5,7 @@ var flower = (function () {
     "use strict";
 
     var alertContainer = document.getElementById('alert-container');
+
     function show_alert(message, type) {
         var wrapper = document.createElement('div');
         wrapper.innerHTML = `
@@ -39,10 +40,31 @@ var flower = (function () {
         var pathname = $(location).attr('pathname');
         if (name === '/') {
             return pathname === (url_prefix() + name);
-        }
-        else {
+        } else {
             return pathname.startsWith(url_prefix() + name);
         }
+    }
+
+    function showErrorNotification(message) {
+        const notification = document.createElement('ul');
+        notification.className = 'notifications';
+        notification.innerHTML = `
+            <li class="toast error">
+                <div class="column">
+                   <span>${message}</span>
+                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="removeToast(this.parentElement)">
+                    <path d="M18 6L6 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6L18 18" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </li>
+        `
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
     }
 
     $('#worker-refresh').on('click', function (event) {
@@ -330,7 +352,9 @@ var flower = (function () {
             success: function (data) {
                 show_alert(data.message, "success");
                 document.getElementById("task-revoke").disabled = true;
-                setTimeout(function() {location.reload();}, 5000);
+                setTimeout(function () {
+                    location.reload();
+                }, 5000);
             },
             error: function (data) {
                 show_alert(data.responseText, "danger");
@@ -354,7 +378,9 @@ var flower = (function () {
             success: function (data) {
                 show_alert(data.message, "success");
                 document.getElementById("task-terminate").disabled = true;
-                setTimeout(function() {location.reload();}, 5000);
+                setTimeout(function () {
+                    location.reload();
+                }, 5000);
             },
             error: function (data) {
                 show_alert(data.responseText, "danger");
@@ -368,15 +394,15 @@ var flower = (function () {
 
     function format_time(timestamp) {
         var time = $('#time').val(),
-        prefix = time && time.startsWith('natural-time') ? 'natural-time' : 'time';
+            prefix = time && time.startsWith('natural-time') ? 'natural-time' : 'time';
 
-    // If 'natural-time', return a human-readable relative time in the local timezone
-    if (prefix === 'natural-time') {
-        return moment.unix(timestamp).local().fromNow(); // Convert to local time and show relative format
-    }
+        // If 'natural-time', return a human-readable relative time in the local timezone
+        if (prefix === 'natural-time') {
+            return moment.unix(timestamp).local().fromNow(); // Convert to local time and show relative format
+        }
 
-    // Otherwise, return the formatted date/time in local time ('YYYY-MM-DD HH:mm:ss.SSS')
-    return moment.unix(timestamp).local().format('YYYY-MM-DD HH:mm:ss.SSS');
+        // Otherwise, return the formatted date/time in local time ('YYYY-MM-DD HH:mm:ss.SSS')
+        return moment.unix(timestamp).local().format('YYYY-MM-DD HH:mm:ss.SSS');
     }
 
     function isColumnVisible(name) {
@@ -436,19 +462,19 @@ var flower = (function () {
                 updateFlowerTableData(data);
             },
             error: function (error) {
-              console.error("Error fetching flower workers data: ", error);
-              showErrorNotification("Error fetching flower workers data");
+                console.error("Error fetching flower workers data: ", error);
+                showErrorNotification("Error fetching flower workers data");
             },
         })
 
         if (flower_worker_auto_refresh) {
-             runFlowerTableDataUpdate();
+            runFlowerTableDataUpdate();
         }
 
     });
 
     function runFlowerTableDataUpdate() {
-        flower_worker_auto_refresh_interval = setInterval( function () {
+        flower_worker_auto_refresh_interval = setInterval(function () {
             $.ajax({
                 url: url_prefix() + '/flowers/workers?json=1',
                 type: "GET",
@@ -457,11 +483,11 @@ var flower = (function () {
                     updateFlowerTableData(data);
                 },
                 error: function (error) {
-                  console.error("Error fetching flower workers data: ", error);
-                  showErrorNotification("Error fetching flower workers data");
+                    console.error("Error fetching flower workers data: ", error);
+                    showErrorNotification("Error fetching flower workers data");
                 },
-        })
-            }, 1 * 5000);
+            })
+        }, 1 * 5000);
     }
 
     window.runFlowerTableDataUpdate = runFlowerTableDataUpdate;
@@ -477,66 +503,66 @@ var flower = (function () {
         }
 
         $.each(data.data, function (index, worker) {
-          var row = $("<div class=\"table-row\">");
-          row.append($("<div style=\"width: 13%\">")
-              .html(`<a href="${url_prefix()}/flowers/worker/${encodeURIComponent(worker.hostname)}">${worker.hostname} + '</a>`));
-          row.append($("<div style=\"width: 13%\">").text(worker.status));
-          row.append($("<div style=\"width: 13%\">").text(worker.active));
-          row.append($("<div style=\"width: 13%\">").text(worker["task-received"] ? worker["task-received"]: 0));
-          row.append($("<div style=\"width: 13%\">").text(worker["task-failed"] ? worker["task-failed"]: 0));
-          row.append($("<div style=\"width: 12%\">").text(worker["task-succeeded"] ? worker["task-succeeded"]: 0));
-          row.append($("<div style=\"width: 12%\">").text(worker["task-retried"] ? worker["task-retried"]: 0));
+            var row = $("<div class=\"table-row\">");
+            row.append($("<div style=\"width: 13%\">")
+                .html(`<a href="${url_prefix()}/flowers/worker/${encodeURIComponent(worker.hostname)}">${worker.hostname} + '</a>`));
+            row.append($("<div style=\"width: 13%\">").text(worker.status));
+            row.append($("<div style=\"width: 13%\">").text(worker.active));
+            row.append($("<div style=\"width: 13%\">").text(worker["task-received"] ? worker["task-received"] : 0));
+            row.append($("<div style=\"width: 13%\">").text(worker["task-failed"] ? worker["task-failed"] : 0));
+            row.append($("<div style=\"width: 12%\">").text(worker["task-succeeded"] ? worker["task-succeeded"] : 0));
+            row.append($("<div style=\"width: 12%\">").text(worker["task-retried"] ? worker["task-retried"] : 0));
 
-          var queuesCell = $("<div style=\"width: 11%\">");
-          $.each(worker["loadavg"], function (queueIndex, queue) {
-            queuesCell.append(queue);
-            if (queueIndex < worker["loadavg"].length - 1) {
-              queuesCell.append(", ");
-            }
-          });
-          row.append(queuesCell);
+            var queuesCell = $("<div style=\"width: 11%\">");
+            $.each(worker["loadavg"], function (queueIndex, queue) {
+                queuesCell.append(queue);
+                if (queueIndex < worker["loadavg"].length - 1) {
+                    queuesCell.append(", ");
+                }
+            });
+            row.append(queuesCell);
 
-          tableBody.append(row);
+            tableBody.append(row);
         });
     }
 
     let page = 1;
 
-      window.onload = function () {
+    window.onload = function () {
         updatePageNumber();
-      };
+    };
 
-      window["nextTaskPage"] = function nextPage() {
+    window["nextTaskPage"] = function nextPage() {
         page += 1;
         updatePageNumber();
         updateTasksData();
-      }
+    }
 
-      window["previousTaskPage"] = function previousPage() {
+    window["previousTaskPage"] = function previousPage() {
         if (page > 1) {
-          page -= 1;
-          updatePageNumber();
-          updateTasksData();
+            page -= 1;
+            updatePageNumber();
+            updateTasksData();
         }
-      }
+    }
 
-      window["filterFlowerTasks"] = function filterFlowerTasks() {
-            event.preventDefault();
-            updateTasksData();
-      }
+    window["filterFlowerTasks"] = function filterFlowerTasks() {
+        event.preventDefault();
+        updateTasksData();
+    }
 
-      window["resetTaskForm"] = function resetTaskForm() {
-            event.preventDefault();
-            $("#state-filter").val("all");
-            $("#search-name-filter").val("");
-            updateTasksData();
-      }
+    window["resetTaskForm"] = function resetTaskForm() {
+        event.preventDefault();
+        $("#state-filter").val("all");
+        $("#search-name-filter").val("");
+        updateTasksData();
+    }
 
-      function updateTasksData () {
-          let selectedState = $("#state-filter").val();
-          let selectedSearchValue = $("#search-name-filter").val();
+    function updateTasksData() {
+        let selectedState = $("#state-filter").val();
+        let selectedSearchValue = $("#search-name-filter").val();
 
-          $.ajax({
+        $.ajax({
             url: url_prefix() + `/flowers/tasks/datatable?limit=10&page=${page}&state=${selectedState}&search=${selectedSearchValue}`,
             type: "GET",
             dataType: "json",
@@ -549,42 +575,102 @@ var flower = (function () {
                     tableBody.append(row);
                 }
                 $.each(data.data, function (index, task) {
-                  var row = $("<div class=\"table-row\">");
-                  row.append($("<div style=\"width: 6%\">").text(task.name));
-                  row.append($("<div style=\"width: 18%\">").html(`<a href="${url_prefix()}/flowers/task/${encodeURIComponent(task.uuid)}">${task.uuid}</a>`));
-                  switch (task.state) {
-                    case 'SUCCESS':
-                        row.append($("<div style=\"width: 7%\">").html('<span class="badge bg-success">' + task.state + '</span>'));
-                        break;
-                    case 'FAILURE':
-                        row.append($("<div style=\"width: 7%\">").html('<span class="badge bg-danger">' + task.state + '</span>'));
-                        break;
-                    default:
-                        row.append($("<div style=\"width: 7%\">").html('<span class="badge bg-secondary">' + task.state + '</span>'));
+                    var row = $("<div class=\"table-row\">");
+                    row.append($("<div style=\"width: 6%\">").text(task.name));
+                    row.append($("<div style=\"width: 18%\">").html(`<a href="${url_prefix()}/flowers/task/${encodeURIComponent(task.uuid)}">${task.uuid}</a>`));
+                    switch (task.state) {
+                        case 'SUCCESS':
+                            row.append($("<div style=\"width: 7%\">").html('<span class="badge bg-success">' + task.state + '</span>'));
+                            break;
+                        case 'FAILURE':
+                            row.append($("<div style=\"width: 7%\">").html('<span class="badge bg-danger">' + task.state + '</span>'));
+                            break;
+                        default:
+                            row.append($("<div style=\"width: 7%\">").html('<span class="badge bg-secondary">' + task.state + '</span>'));
                     }
-                  row.append($("<div style=\"width: 9%\">").text(task.args));
-                  row.append($("<div style=\"width: 9%\">").text(task.kwargs));
-                  row.append($("<div style=\"width: 8%\">").text(task.result));
-                  row.append($("<div style=\"width: 12%\">").text(format_time(task.received)));
-                  row.append($("<div style=\"width: 12%\">").text(format_time(task.started)));
-                  row.append($("<div style=\"width: 9%\">").text(task.runtime ? task.runtime.toFixed(2) : task.runtime));
-                  row.append($("<div style=\"width: 9%\">").html(`<a href="${url_prefix()}/flowers/worker/${encodeURIComponent(task.worker)}">${task.worker}</a>`));
+                    row.append($("<div style=\"width: 9%\">").text(task.args));
+                    row.append($("<div style=\"width: 9%\">").text(task.kwargs));
+                    row.append($("<div style=\"width: 8%\">").text(task.result));
+                    row.append($("<div style=\"width: 12%\">").text(format_time(task.received)));
+                    row.append($("<div style=\"width: 12%\">").text(format_time(task.started)));
+                    row.append($("<div style=\"width: 9%\">").text(task.runtime ? task.runtime.toFixed(2) : task.runtime));
+                    row.append($("<div style=\"width: 9%\">").html(`<a href="${url_prefix()}/flowers/worker/${encodeURIComponent(task.worker)}">${task.worker}</a>`));
 
-                  tableBody.append(row);
+                    tableBody.append(row);
+
+                    renderPagination(data.page, data.total_pages, data.start_page, data.end_page);
                 });
-                },
-                error: function (error) {
-                  console.error("Error fetching flower tasks data: ", error);
-                  showErrorNotification("Error fetching flower tasks data");
-                },
+            },
+            error: function (error) {
+                console.error("Error fetching flower tasks data: ", error);
+                showErrorNotification("Error fetching flower tasks data");
+            },
         })
-      }
+    }
 
-      function updatePageNumber() {
-          if (document.getElementById("page-number") !== null) {
-              document.getElementById("page-number").textContent = page;
-          }
-      }
+    function renderPagination(currentPage, totalPages, startPage, endPage) {
+        const wrapper = $("#pagination-wrapper");
+        wrapper.empty();
+
+        if (currentPage > 1) {
+            wrapper.append(`
+      <li class="pagination-wrapper-option" onclick="window.goToPage(${currentPage - 1})">
+        <div class="pagination-wrapper-option-button" aria-label="Previous page">
+          <svg height="20px" viewBox="0 0 27 24"><path d="M15.1667 8L11 12.1667L15.1667 16.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </li>
+    `);
+        }
+
+        if (currentPage > 3) {
+            wrapper.append(`
+      <li class="pagination-wrapper-option" onclick="window.goToPage(1)">
+        <div class="pagination-wrapper-option-button">1</div>
+      </li>
+      <li class="ml-20"><span class="pagination-ellipsis">&hellip;</span></li>
+    `);
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            wrapper.append(`
+      <li class="pagination-wrapper-option ml-20">
+        <div class="pagination-wrapper-option-button ${p === currentPage ? 'pagination-wrapper-option-button-active' : ''}"
+             onclick="window.goToPage(${p})">${p}</div>
+      </li>
+    `);
+        }
+
+        if (currentPage < totalPages - 2) {
+            wrapper.append(`
+      <li class="ml-20"><span class="pagination-ellipsis">&hellip;</span></li>
+      <li class="pagination-wrapper-option ml-20" onclick="window.goToPage(${totalPages})">
+        <div class="pagination-wrapper-option-button">${totalPages}</div>
+      </li>
+    `);
+        }
+
+        if (currentPage < totalPages) {
+            wrapper.append(`
+      <li class="pagination-wrapper-option ml-20" onclick="window.goToPage(${currentPage + 1})">
+        <div class="pagination-wrapper-option-button" aria-label="Next page">
+          <svg height="20px" viewBox="0 0 27 24"><path d="M11.2333 16L15.4 11.8333L11.2333 7.66667" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </li>
+    `);
+        }
+    }
+
+    window.goToPage = function(p) {
+      page = p;
+      updateTasksData();
+    }
+
+
+    function updatePageNumber() {
+        if (document.getElementById("page-number") !== null) {
+            document.getElementById("page-number").textContent = page;
+        }
+    }
 
     $(document).ready(function () {
         if (!active_page('/flowers/tasks')) {

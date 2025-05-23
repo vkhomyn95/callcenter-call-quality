@@ -50,7 +50,8 @@
                                 </div>
                             </div>
                             <div class="flex flex-direction-column ml-15">
-                                <label class="label label-required_danger mb-5" for="search-name-filter" style="white-space: nowrap">Ідентифікатор
+                                <label class="label label-required_danger mb-5" for="search-name-filter"
+                                       style="white-space: nowrap">Ідентифікатор
                                     запиту</label>
                                 <div class="w-100">
                                     <input
@@ -120,7 +121,7 @@
                                 {{ task.exception }}
                                 {% endif %}
                             </div>
-                            <div style="width: 12%" class="created-date">{{ task.get('received', 0)  }}</div>
+                            <div style="width: 12%" class="created-date">{{ task.get('received', 0) }}</div>
                             <div style="width: 12%" class="created-date">{{ task.get('started', 0) }}</div>
                             <div style="width: 12%">
                                 {% if task.timestamp and task.started %}
@@ -137,9 +138,9 @@
                             <div style="width: 60px">
                                 <div class="is-flex-direction-row is-align-content-center">
                                     {% if task.state == "FAILURE" %}
-                                        <a onclick="requeueJob('{{ task.uuid }}')" style="color: #00475A; cursor:pointer;">
-                                           {% include 'header/icons/icon-requeue.html' %}
-                                        </a>
+                                    <a onclick="requeueJob('{{ task.uuid }}')" style="color: #00475A; cursor:pointer;">
+                                        {% include 'header/icons/icon-requeue.html' %}
+                                    </a>
                                     {% endif %}
                                 </div>
                             </div>
@@ -152,71 +153,69 @@
 
         <div class="pagination">
             <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-                <ul class="pagination-wrapper">
-                    <li class="pagination-wrapper-option" onclick="window.previousTaskPage()">
-                        <div class="pagination-wrapper-option-button" aria-label="Goto page 1">
-                            <svg height="20px" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M15.1667 8L11 12.1667L15.1667 16.3333" stroke="currentColor" stroke-width="2"
-                                      stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                    </li>
+                <ul class="pagination-wrapper" id="pagination-wrapper">
+                    {% for p in range(start_page, end_page + 1) %}
                     <li class="pagination-wrapper-option ml-20">
-                        <div class="pagination-wrapper-option-button pagination-wrapper-option-button-active"
-                             id="page-number">{{ page if page else 1 }}
+                        <div class="pagination-wrapper-option-button {% if p == page %}pagination-wrapper-option-button-active{% endif %}"
+                             onclick="window.goToPage({{ p }})">{{ p }}
                         </div>
                     </li>
-                    <li class="pagination-wrapper-option" onclick="window.nextTaskPage()">
-                        <div class="pagination-wrapper-option-button" aria-label="Goto page 1"
-                             style="margin-left: 10px">
+                    {% endfor %}
+
+                    {% if page < total_pages %}
+                    <li class="pagination-wrapper-option ml-20" onclick="window.goToPage({{ page + 1 }})">
+                        <div class="pagination-wrapper-option-button">
                             <svg height="20px" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M11.2333 16L15.4 11.8333L11.2333 7.66667" stroke="currentColor"
                                       stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
                     </li>
+                    {% endif %}
                 </ul>
             </nav>
         </div>
+
     </div>
 </div>
 <script>
     function convertUTCToLocal(utcDateString) {
-      // Parse the UTC date string to a Date object
-      if (utcDateString.endsWith("Z")) {
+        // Parse the UTC date string to a Date object
+        if (utcDateString.endsWith("Z")) {
             utcDateString = utcDateString.replaceAll("Z", "");
         }
         const utcDate = new Date(utcDateString + 'Z')
 
-      // Format the Date object to the desired format in the local timezone
-      const options = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Ensures local timezone
-      };
+        // Format the Date object to the desired format in the local timezone
+        const options = {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Ensures local timezone
+        };
 
-      const formatter = new Intl.DateTimeFormat('en-CA', options);
-      const formattedDateParts = formatter.formatToParts(utcDate);
+        const formatter = new Intl.DateTimeFormat('en-CA', options);
+        const formattedDateParts = formatter.formatToParts(utcDate);
 
-      // Extract parts and assemble into desired format
-      const year = formattedDateParts.find(part => part.type === 'year').value;
-      const month = formattedDateParts.find(part => part.type === 'month').value;
-      const day = formattedDateParts.find(part => part.type === 'day').value;
-      const hour = formattedDateParts.find(part => part.type === 'hour').value;
-      const minute = formattedDateParts.find(part => part.type === 'minute').value;
-      const second = formattedDateParts.find(part => part.type === 'second').value;
+        // Extract parts and assemble into desired format
+        const year = formattedDateParts.find(part => part.type === 'year').value;
+        const month = formattedDateParts.find(part => part.type === 'month').value;
+        const day = formattedDateParts.find(part => part.type === 'day').value;
+        const hour = formattedDateParts.find(part => part.type === 'hour').value;
+        const minute = formattedDateParts.find(part => part.type === 'minute').value;
+        const second = formattedDateParts.find(part => part.type === 'second').value;
 
-      // Return the formatted date string
-      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+        // Return the formatted date string
+        return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
     }
+
     document.querySelectorAll('.created-date').forEach(element => {
-      const utcDate = element.textContent.trim();
-      element.textContent = convertUTCToLocal(utcDate);
+        const utcDate = element.textContent.trim();
+        element.textContent = convertUTCToLocal(utcDate);
     });
 </script>
 </body>

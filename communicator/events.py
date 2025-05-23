@@ -117,7 +117,7 @@ class Events(threading.Thread):
     events_enable_interval = 5000
 
     # pylint: disable=too-many-arguments
-    def __init__(self, capp, io_loop, db=None, persistent=False, enable_events=True, state_save_interval=0, limit_tasks_by_type=None, **kwargs):
+    def __init__(self, capp, io_loop, db=None, persistent=False, enable_events=True, state_save_interval=0, limit_task_interval=None, limit_task_count=None, **kwargs):
         threading.Thread.__init__(self)
         self.daemon = True
 
@@ -128,7 +128,8 @@ class Events(threading.Thread):
         self.enable_events = enable_events
         self.state = None
         self.state_save_timer = None
-        self.limit_tasks_by_type = limit_tasks_by_type
+        self.limit_task_interval = limit_task_interval
+        self.limit_task_count = limit_task_count
         if self.persistent:
             print("=====> Loading state from ", self.db)
             logger.debug("Loading state from '%s'...", self.db)
@@ -141,7 +142,7 @@ class Events(threading.Thread):
             if state_save_interval:
                 self.state_save_timer = PeriodicCallback(self.save_state, state_save_interval)
 
-        if self.limit_tasks_by_type:
+        if self.limit_task_interval > 0 and self.limit_task_count > 0:
             self.clear_tasks_by_type_timer = PeriodicCallback(self.clear_tasks_by_type, 5000 * 60)
 
         if not self.state:
@@ -158,7 +159,7 @@ class Events(threading.Thread):
             logger.debug("Starting state save timer...")
             self.state_save_timer.start()
 
-        if self.clear_tasks_by_type:
+        if self.limit_task_interval > 0 and self.limit_task_count > 0:
             logger.debug("Starting clear tasks by type timer...")
             self.clear_tasks_by_type_timer.start()
 
@@ -238,15 +239,21 @@ class Events(threading.Thread):
 
     def clear_tasks_by_type(self):
         now = datetime.datetime.now()
-        for obj in self.limit_tasks_by_type:
-            logging.info(f'== Clear task by type {obj.get("type")}.')
-            timedelta, max_count = obj.get('timedelta'), obj.get('max_count')
-            timedelta = td(minutes=timedelta)
-            # self.state.tasks_by_type are weakSet, so we could get task after deletion.
-            for count, (uuid, task) in enumerate(self.state._tasks_by_type(obj.get('type')), start=1):
-                if task.state != 'SUCCESS' or task.state == 'FAILURE' and obj.get('clear_failed'):
-                    continue
+        logging.info(f'== Clearing success tasks older than {self.limit_task_interval} minutes.')
+        max_age = td(minutes=self.limit_task_interval)
+        max_count = self.limit_task_count
 
-                if timedelta and task.timestamp <= (now - timedelta).timestamp() or max_count and max_count < count:
-                    del self.state.tasks[task.uuid]
+        tasks = sorted(self.state.tasks.values(), key=lambda t: t.timestamp)
+
+        deleted = 0
+        for count, task in enumerate(tasks, start=1):
+            too_old = task.timestamp <= (now - max_age).timestamp()
+            too_many = max_count and count > max_count
+
+            if task.state == 'SUCCESS' and (too_old or too_many):
+                self.state.tasks.pop(task.uuid, None)
+                deleted += 1
+
+        logging.info(f'== Cleared {deleted} success tasks older than {self.limit_task_interval} minutes.')
+
         self.state.rebuild_taskheap()

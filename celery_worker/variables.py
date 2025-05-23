@@ -64,10 +64,6 @@ class Variables:
         "REDIS_RETRY_DELAY", 30.0
     ))
 
-    whisper_model: str = os.getenv(
-        "WHISPER_MODEL", "openai/whisper-large-v3"
-    )
-
     elevenlabs_api_key: str = os.getenv(
         "ELEVENLABS_API_KEY", ""
     )
@@ -77,7 +73,7 @@ class Variables:
     )
 
     gemini_api_key: str = os.getenv(
-        "GEMINI_API_KEY", "dd"
+        "GEMINI_API_KEY", ""
     )
 
     app_host: str = os.getenv(

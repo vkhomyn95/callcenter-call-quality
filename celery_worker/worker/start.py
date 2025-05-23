@@ -107,6 +107,8 @@ celery = Celery(
 celery.conf.update({
     'broker_connection_retry': True,
     'broker_connection_retry_on_startup': True,
+    'task_acks_late': True,
+    'task_reject_on_worker_lost': True,
     'worker_send_task_events': True,
     'task_routes': {
         "celery_worker.worker.worker.transcribe_scribe_v1": {"queue": "scribe_v1_queue"},

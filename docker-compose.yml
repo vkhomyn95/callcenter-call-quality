@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: celery_worker/Dockerfile
-    container_name: celery_worker
+    container_name: call-quality-worker
     deploy:
       resources:
         reservations:
@@ -22,16 +22,16 @@ services:
     volumes:
       - "/stor:/stor"
     command: >
-      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=scribe_v1_queue -E &
-             celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=openai_whisper_queue -E &
-             celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=gemini_queue -E &
+      sh -c "celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=scribe_v1_queue -E --hostname=worker1@%h &
+             celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=openai_whisper_queue -E --hostname=worker2@%h &
+             celery --app celery_worker.worker.worker.celery worker --concurrency=1 --pool=threads --queues=gemini_queue -E --hostname=worker3@%h &
              python celery_worker/hook/start.py"
 
   communicator:
     build:
       context: .
       dockerfile: communicator/Dockerfile
-    container_name: communicator
+    container_name: call-quality
     volumes:
       - "/stor:/stor"
       - "/etc/localtime:/etc/localtime:ro"

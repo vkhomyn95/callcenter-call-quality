@@ -134,7 +134,7 @@ class CallbackTask(Task):
             logging.error(f" >> Error sending webhook: {e}")
 
 
-@celery.task(base=CallbackTask, name="transcribe_scribe_v1", queue="scribe_v1_queue", bind=True)
+@celery.task(base=CallbackTask, name="transcribe_scribe_v1", queue="scribe_v1_queue", bind=True, acks_late=True)
 def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription task that processes audio files and returns transcription results.
@@ -157,6 +157,8 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
         # transcription = process_transcription(os.path.join(get_save_directory(received_date), file_path))
 
         try:
+            logging.info(f"Processing scribe transcription task {unique_uuid} file {file_path} for user {user_id}")
+
             with open(os.path.join(get_save_directory(received_date), file_path), 'rb') as audio_file:
                 audio_data = BytesIO(audio_file.read())
 
@@ -168,6 +170,8 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
                 diarize=True
             )
             transcription_results["words"] = transcription.words
+
+            logging.info(f"Done scribe transcription task {unique_uuid} file {file_path} for user {user_id}")
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
 
@@ -193,7 +197,7 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
     }
 
 
-@celery.task(base=CallbackTask, name="transcribe_gemini", queue="gemini_queue", bind=True)
+@celery.task(base=CallbackTask, name="transcribe_gemini", queue="gemini_queue", bind=True, acks_late=True)
 def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription task that processes audio files and returns transcription results.
@@ -215,6 +219,8 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
         logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
 
         try:
+            logging.info(f"Processing gemini transcription task {unique_uuid} file {file_path} for user {user_id}")
+
             files = [gemini.files.upload(file=os.path.join(get_save_directory(received_date), file_path))]
 
             model = "gemini-2.5-pro-preview-03-25"
@@ -245,6 +251,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
             transcription = gemini.models.generate_content(model=model, contents=contents, config=generate_content_config)
             transcription_results["words"] = json.loads(transcription.candidates[0].content.parts[0].text)
 
+            logging.info(f"Done gemini transcription task {unique_uuid} file {file_path} for user {user_id}")
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
 
@@ -270,7 +277,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
     }
 
 
-@celery.task(base=CallbackTask, name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True)
+@celery.task(base=CallbackTask, name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True, acks_late=True)
 def transcribe_openai_whisper(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription using OpenAI Whisper
@@ -280,6 +287,8 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
 
     for file_path in resampler:
         try:
+            logging.info(f"Processing whisper transcription task {unique_uuid} file {file_path} for user {user_id}")
+
             with open(os.path.join(get_save_directory(received_date), file_path), 'rb') as audio_file:
                 transcription = client.audio.transcriptions.create(
                     model="whisper-1",
@@ -290,6 +299,7 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
 
             transcription_results["segments"] = transcription.segments
 
+            logging.info(f"Done whisper transcription task {unique_uuid} file {file_path} for user {user_id}")
         except Exception as e:
             logging.error(f"OpenAI error processing file {file_path}: {e}")
 
