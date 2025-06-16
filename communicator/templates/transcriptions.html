@@ -81,7 +81,7 @@
                     {'name': 'Дата отримання'},
                     {'name': 'Дата транскрибування'},
                     {'name': 'Ідентифікатор розпізнавання'},
-                    {'name': 'Кількість каналів'},
+                    {'name': 'Статус'},
                     {'name': 'Тривалість аудіозапису'},
                     {'name': 'Дії', 'actions': True},
                 ] %}
@@ -108,7 +108,7 @@
                             <div style="width: 19%" class="created-date">{{ recognition.received_date }}</div>
                             <div style="width: 19%" class="created-date">{{ recognition['@timestamp'] }}</div>
                             <div style="width: 19%">{{ recognition.task_id }}</div>
-                            <div style="width: 19%">{{ recognition.num_channels }}</div>
+                            <div style="width: 19%">{{ recognition.status }}</div>
                             <div style="width: 19%">{{ recognition.duration }}</div>
 
                             <div style="width: 50px">

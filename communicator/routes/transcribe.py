@@ -4,20 +4,17 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from io import BytesIO
 
-import httpx
 import torchaudio
 from fastapi import APIRouter, UploadFile, File, Query, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 from starlette import status
-from starlette.requests import Request
 from torchaudio import AudioMetaData
 
-from communicator.database import Model, Tariff
 from communicator.database.database import get_db
-from communicator.utils.crud import load_user_by_api_key, decrement_user_tariff
 from communicator.job.start import celery
 from communicator.resampler.resampler import Resampler
+from communicator.utils.crud import load_user_by_api_key, decrement_user_tariff
 
 
 class CustomHTTPException(HTTPException):
@@ -100,6 +97,12 @@ async def transcribe(
 
     resampler = Resampler(unique_uuid).resample(info, audio, received_date)
 
+    if len(resampler) == 0:
+        raise CustomHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Failed to upload talk record file.'
+        )
+
     talk_record_id = int(talk_record_id) if talk_record_id else None
 
     task = celery.send_task(
@@ -109,49 +112,6 @@ async def transcribe(
     )
 
     decrement_user_tariff(db, tariff.id, round(duration))
-
-    return TranscriptionResponse(unique_uuid, task.id, task.status, talk_record_id)
-
-
-@router.post("/transcribe-url", response_model=TranscriptionResponse, name="transcribe-url")
-async def transcribe_url(
-        request: Request,
-        token: str = Depends(get_token),
-        user_id: str = Query(None, alias="user_id"),
-        talk_record_id: str = Query(None, alias="talk_record_id"),
-        origin: str = Query(None, alias="origin"),
-        db: Session = Depends(get_db)
-) -> TranscriptionResponse:
-    unique_uuid = str(uuid.uuid4())
-
-    payload = await request.json()
-
-    response = None
-    async with httpx.AsyncClient() as client:
-        response = await client.get(payload["file"][0])
-        response.raise_for_status()
-    info: AudioMetaData = torchaudio.info(BytesIO(response.content))
-    duration = info.num_frames / info.sample_rate
-
-    user = load_user_by_api_key(db, token)
-    if user is None or user.tariff.total < duration:
-        raise CustomHTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f'Not valid access_token or tariff limit reached. Required {duration} seconds'
-        )
-
-    resampler = Resampler(unique_uuid).resample(info, response.content)
-
-    received_date = datetime.now(timezone.utc).isoformat()[:-9]
-
-    talk_record_id = int(talk_record_id) if talk_record_id else None
-
-    task = celery.send_task(
-        "transcribe",
-        args=[received_date, duration, info.num_channels, user_id, talk_record_id, resampler, unique_uuid, origin]
-    )
-
-    decrement_user_tariff(db, user.tariff.id, round(duration))
 
     return TranscriptionResponse(unique_uuid, task.id, task.status, talk_record_id)
 

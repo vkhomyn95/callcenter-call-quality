@@ -131,14 +131,13 @@ class Events(threading.Thread):
         self.limit_task_interval = limit_task_interval
         self.limit_task_count = limit_task_count
         if self.persistent:
-            print("=====> Loading state from ", self.db)
-            logger.debug("Loading state from '%s'...", self.db)
+            logging.info("=====> Loading state from flower db")
             state = shelve.open(self.db)
             if state:
                 print(state)
                 self.state = state['events']
             state.close()
-            print("======> state_save_interval: ", state_save_interval)
+            logging.info("======> state_save_interval: %s", state_save_interval)
             if state_save_interval:
                 self.state_save_timer = PeriodicCallback(self.save_state, state_save_interval)
 
@@ -202,15 +201,9 @@ class Events(threading.Thread):
                 time.sleep(try_interval)
 
     def save_state(self):
-        logger.debug("Saving state to '%s'...", self.db)
-        print("=====> Saving state to '%s'...", self.db)
+        logging.debug("Saving state to '%s'...", self.db)
         state = shelve.open(self.db, flag='n')
-        if variables.flower_state_save_failed:
-            self.state.clear(ready=True)
-            self.state.clear_tasks(ready=True)
-            state['events'] = self.state
-        else:
-            state['events'] = self.state
+        state['events'] = self.state
         state.close()
 
     def on_enable_events(self):

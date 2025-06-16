@@ -50,7 +50,9 @@ class Variables:
     celery_backend: str = os.getenv(
         "CELERY_BACKEND", "elasticsearch://localhost:9200/transcriptions"
     )
-
+    celery_max_retries: int = int(os.getenv(
+        "CELERY_MAX_RETRIES", 3
+    ))
     redis_url: str = os.getenv(
         "REDIS_URL", "redis://localhost:6379/1"
     )
@@ -94,6 +96,23 @@ class Variables:
     telegram_bot_token: str = os.getenv(
         "TELEGRAM_TOKEN", ""
     )
+
+    minio_endpoint: str = os.getenv(
+        "MINIO_ENDPOINT", "10.116.83.22:9000"
+    )
+    minio_bucket: str = os.getenv(
+        "MINIO_BUCKET", "transcription"
+    )
+    minio_access_key: str = os.getenv(
+        "MINIO_ACCESS_KEY", "YOUR_MINIO_ACCESS_KEY"
+    )
+    minio_secret_key: str = os.getenv(
+        "MINIO_SECRET_KEY", "YOUR_MINIO_SECRET_KEY"
+    )
+    minio_secure: bool = bool(os.getenv(
+        "MINIO_SECURE",
+        True
+    ))
 
 
 variables = Variables()

@@ -21,3 +21,4 @@ rq_scheduler
 tornado
 prometheus_client
 humanize
+minio

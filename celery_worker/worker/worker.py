@@ -4,6 +4,8 @@ import os
 from datetime import datetime, timezone
 from io import BytesIO
 
+from google.genai.types import UploadFileConfig
+from json_repair import repair_json
 from celery import Task
 from elevenlabs import ElevenLabs
 from google import genai
@@ -11,6 +13,7 @@ from google.genai import types
 from openai import OpenAI
 
 from celery_worker.database.database import pymysql_db
+from celery_worker.database.minio_client import minio_client
 from celery_worker.hook.hooker import validate_url, send_webhook
 from celery_worker.variables import variables
 from celery_worker.worker.start import celery
@@ -134,7 +137,7 @@ class CallbackTask(Task):
             logging.error(f" >> Error sending webhook: {e}")
 
 
-@celery.task(base=CallbackTask, name="transcribe_scribe_v1", queue="scribe_v1_queue", bind=True, acks_late=True)
+@celery.task(base=CallbackTask, name="transcribe_scribe_v1", queue="scribe_v1_queue", bind=True, acks_late=True, max_retries=variables.celery_max_retries)
 def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription task that processes audio files and returns transcription results.
@@ -154,16 +157,22 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
 
     for file_path in resampler:
         logging.info(f" >> Transcribing file {file_path} for request {unique_uuid}.")
-        # transcription = process_transcription(os.path.join(get_save_directory(received_date), file_path))
 
         try:
             logging.info(f"Processing scribe transcription task {unique_uuid} file {file_path} for user {user_id}")
 
-            with open(os.path.join(get_save_directory(received_date), file_path), 'rb') as audio_file:
-                audio_data = BytesIO(audio_file.read())
+            if not minio_client:
+                logging.error(f"Could not run task {unique_uuid}: client MinIO is not initialized.")
+                raise self.retry(exc=Exception("MinIO client not available"), countdown=10 * 60)
+
+            response = minio_client.get_object(variables.minio_bucket, file_path)
+
+            file_bytes = BytesIO(response.read())
+            response.close()
+            response.release_conn()
 
             transcription = elevenlabs.speech_to_text.convert(
-                file=audio_data,
+                file=file_bytes,
                 model_id="scribe_v1",
                 tag_audio_events=True,
                 num_speakers=2,
@@ -179,6 +188,7 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
                                   f"\n ❌ Помилка: {e}. "
                                   f"\n ✅ Повторний запит через: {10 * 600} секунд"
                                   f"\n🦒 Користувач: {user_id}"
+                                  f"\n🦒 UUID: {unique_uuid}"
                                   f"\n 🌕 Запис розмови: {talk_record_id}")
 
             raise self.retry(exc=e, countdown=10 * 60)
@@ -197,7 +207,7 @@ def transcribe_scribe_v1(self, received_date, duration, num_channels, user_id, t
     }
 
 
-@celery.task(base=CallbackTask, name="transcribe_gemini", queue="gemini_queue", bind=True, acks_late=True)
+@celery.task(base=CallbackTask, name="transcribe_gemini", queue="gemini_queue", bind=True, acks_late=True, max_retries=variables.celery_max_retries)
 def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription task that processes audio files and returns transcription results.
@@ -221,7 +231,18 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
         try:
             logging.info(f"Processing gemini transcription task {unique_uuid} file {file_path} for user {user_id}")
 
-            files = [gemini.files.upload(file=os.path.join(get_save_directory(received_date), file_path))]
+            if not minio_client:
+                logging.error(f"Could not run task {unique_uuid}: client MinIO is not initialized.")
+                raise self.retry(exc=Exception("MinIO client not available"), countdown=10 * 60)
+
+            response = minio_client.get_object(variables.minio_bucket, file_path)
+            file_bytes = BytesIO(response.read())
+            response.close()
+            response.release_conn()
+
+            file_bytes.name = file_path.split('/')[-1]
+
+            uploaded_file = gemini.files.upload(file=file_bytes, config=UploadFileConfig(mime_type="audio/wav"))
 
             model = "gemini-2.5-pro-preview-03-25"
 
@@ -230,15 +251,19 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
                     role="user",
                     parts=[
                         types.Part.from_uri(
-                            file_uri=files[0].uri,
-                            mime_type=files[0].mime_type,
+                            file_uri=uploaded_file.uri,
+                            mime_type="audio/wav",
                         ),
                         types.Part.from_text(
                             text="""
-                                Протранскрибуй розмову.
-                                Добав час старту полем start і кінця репліки полем end, тип повинен повертатись float. 
-                                Репліка у полі text повинна повертатись.
-                                Також зроби діаризацію спікерів полем speaker_id 0/1/2. 0 відповідає за сторонні звуки.
+                                Transcribe talk record. 
+                                Add the start time using the start field and the end time using the end field, both should be returned as floats.
+                                The spoken phrase should be returned in the text field.
+                                Also, perform speaker diarization using the speaker_id field, where:
+                                
+                                0 corresponds to background or non-speech sounds,
+                                
+                                1 and 2 correspond to different speakers.
                             """),
                     ]
                 )
@@ -249,7 +274,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
             )
 
             transcription = gemini.models.generate_content(model=model, contents=contents, config=generate_content_config)
-            transcription_results["words"] = json.loads(transcription.candidates[0].content.parts[0].text)
+            transcription_results["words"] = json.loads(repair_json(transcription.candidates[0].content.parts[0].text))
 
             logging.info(f"Done gemini transcription task {unique_uuid} file {file_path} for user {user_id}")
         except Exception as e:
@@ -259,6 +284,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
                                   f"\n ❌ Помилка: {e}. "
                                   f"\n ✅ Повторний запит через: {10*600} секунд"
                                   f"\n🦒 Користувач: {user_id}"
+                                  f"\n🦒 UUID: {unique_uuid}"
                                   f"\n 🌕 Запис розмови: {talk_record_id}")
 
             raise self.retry(exc=e, countdown=10*60)
@@ -277,7 +303,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
     }
 
 
-@celery.task(base=CallbackTask, name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True, acks_late=True)
+@celery.task(base=CallbackTask, name="transcribe_openai_whisper", queue="openai_whisper_queue", bind=True, acks_late=True, max_retries=variables.celery_max_retries)
 def transcribe_openai_whisper(self, received_date, duration, num_channels, user_id, talk_record_id, resampler, unique_uuid, origin):
     """
     Transcription using OpenAI Whisper
@@ -286,16 +312,22 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
     transcription_date = datetime.now(timezone.utc).isoformat()[:-9]
 
     for file_path in resampler:
+        logging.info(f"Processing whisper transcription task {unique_uuid} file {file_path} for user {user_id}")
         try:
-            logging.info(f"Processing whisper transcription task {unique_uuid} file {file_path} for user {user_id}")
+            if not minio_client:
+                logging.error(f"Could not run task {unique_uuid}: client MinIO is not initialized.")
+                raise self.retry(exc=Exception("MinIO client not available"), countdown=10 * 60)
 
-            with open(os.path.join(get_save_directory(received_date), file_path), 'rb') as audio_file:
-                transcription = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file,
-                    response_format="verbose_json",
-                    timestamp_granularities=["segment"]
-                )
+            response = minio_client.get_object(variables.minio_bucket, file_path)
+
+            file_tuple = (file_path.split('/')[-1], response)
+
+            transcription = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=file_tuple,
+                response_format="verbose_json",
+                timestamp_granularities=["segment"]
+            )
 
             transcription_results["segments"] = transcription.segments
 
@@ -307,6 +339,7 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
                                   f"\n ❌ Помилка: {e}. "
                                   f"\n ✅ Повторний запит через: {10 * 600} секунд"
                                   f"\n🦒 Користувач: {user_id}"
+                                  f"\n🦒 UUID: {unique_uuid}"
                                   f"\n 🌕 Запис розмови: {talk_record_id}")
 
             raise self.retry(exc=e, countdown=10*60)
@@ -323,16 +356,6 @@ def transcribe_openai_whisper(self, received_date, duration, num_channels, user_
         "unique_uuid": unique_uuid,
         "origin": origin
     }
-
-
-def get_save_directory(received_date):
-    # Create directory path based on received date (year/month/day)
-    year, month, day = received_date.split('T')[0].split("-")
-    save_dir = os.path.join(variables.file_dir, year, month, day)
-
-    # Create the directories if they do not exist
-    os.makedirs(save_dir, exist_ok=True)
-    return save_dir
 
 
 def split_replies_by_scribe(transcription_results):
@@ -409,10 +432,10 @@ def split_replies_by_gemini(transcription_results):
 
     for word in transcription_results.get("words", []):
         replies.append({
-            "text": word["text"],
+            "text": word["text"] if "text" in word else "",
             "start": word["start"],
             "end": word["end"],
-            "speaker_id": word["speaker_id"]
+            "speaker_id": word["speaker_id"] if "speaker_id" in word else 0
         })
     return replies
 

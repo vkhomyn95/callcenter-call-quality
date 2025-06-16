@@ -1,11 +1,12 @@
 import logging
-import os
 from io import BytesIO
 
 import torchaudio
 from torchaudio import AudioMetaData
 
 from communicator.variables import variables
+
+from communicator.database.minio_client import minio_client
 
 
 class Resampler:
@@ -24,14 +25,9 @@ class Resampler:
         self.default_audio_format = "wav"
 
     @staticmethod
-    def get_save_directory(received_date):
-        # Create directory path based on received date (year/month/day)
+    def _get_object_name_prefix(received_date: str) -> str:
         year, month, day = received_date.split('T')[0].split("-")
-        save_dir = os.path.join(variables.file_dir, year, month, day)
-
-        # Create the directories if they do not exist
-        os.makedirs(save_dir, exist_ok=True)
-        return save_dir
+        return f"{year}/{month}/{day}"
 
     def resample(self, info: AudioMetaData, audio: bytes, received_date):
         """Get the name of the current global backend
@@ -43,6 +39,10 @@ class Resampler:
                 If upload audio sample rate is less or above 16_000 Hz than make resampling.
                 If upload file channels is more than 2 (stereo). Split to mono in separate file.
         """
+
+        if not minio_client:
+            logging.error(f"  == Request {self.unique_uuid} пропущено: клієнт MinIO не ініціалізований.")
+            return []
 
         files: list = []
         waveform, sample_rate = torchaudio.load(BytesIO(audio))
@@ -59,42 +59,34 @@ class Resampler:
                 resampling_method=self.default_resampling_method
             )(waveform)
 
-        """ Split channels to separate mono file if upload file is stereo. """
-        save_dir = self.get_save_directory(received_date)
-        # if info.num_channels > 1:
-        #     for channel in range(info.num_channels):
-        #         file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(channel) + ".wav")
-        #         torchaudio.save(
-        #             file_path,
-        #             waveform[channel].unsqueeze(0),
-        #             sample_rate=self.default_sample_rate,
-        #             format=self.default_audio_format
-        #         )
-        #         files.append(file_path)
-        #         logging.info(
-        #             f'  == Request {self.unique_uuid} split channel {channel} to mono and saved file as {file_path}.'
-        #         )
-        # else:
-        #     file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
-        #     torchaudio.save(
-        #         file_path,
-        #         waveform,
-        #         sample_rate=self.default_sample_rate,
-        #         format=self.default_audio_format
-        #     )
-        #     files.append(file_path)
-        #     logging.info(
-        #         f'  == Request {self.unique_uuid} saved file as {file_path}.'
-        #     )
-        file_path = os.path.join(save_dir, self.unique_uuid + "_" + str(info.num_channels) + ".wav")
+        object_name_prefix = self._get_object_name_prefix(received_date)
+        object_name = f"{object_name_prefix}/{self.unique_uuid}.{self.default_audio_format}"
+
+        buffer = BytesIO()
         torchaudio.save(
-            file_path,
+            buffer,
             waveform,
             sample_rate=self.default_sample_rate,
             format=self.default_audio_format
         )
-        files.append(file_path)
-        logging.info(
-            f'  == Request {self.unique_uuid} saved file as {file_path}.'
-        )
+        buffer_size = buffer.getbuffer().nbytes
+        buffer.seek(0)
+
+        try:
+            minio_client.put_object(
+                bucket_name=variables.minio_bucket,
+                object_name=object_name,
+                data=buffer,
+                length=buffer_size,
+                content_type='audio/wav'
+            )
+            files.append(object_name)
+            logging.info(
+                f'  == Request {self.unique_uuid} stored to MinIO as: {object_name}'
+            )
+        except Exception as e:
+            logging.error(
+                f'  == Request {self.unique_uuid} can not store to MinIO: {e}'
+            )
+
         return files

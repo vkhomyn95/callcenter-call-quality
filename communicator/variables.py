@@ -1,7 +1,5 @@
-import json
 import os
-from dataclasses import dataclass, field
-from typing import List, Dict
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
@@ -124,15 +122,11 @@ class Variables:
     ))
     flower_state_save_interval: int = int(os.getenv(
         "FLOWER_STATE_SAVE_INTERVAL",
-        0
+        60000
     ))
     flower_enable_events: bool = bool(os.getenv(
         "FLOWER_ENABLE_EVENTS",
         True
-    ))
-    flower_state_save_failed: bool = bool(os.getenv(
-        "FLOWER_STATE_SAVE_FAILED",
-        False
     ))
     flower_state_cleaner_interval: int = int(os.getenv(
         "FLOWER_STATE_CLEANER_INTERVAL",
@@ -166,6 +160,23 @@ class Variables:
     telegram_bot_token: str = os.getenv(
         "TELEGRAM_TOKEN", ""
     )
+
+    minio_endpoint: str = os.getenv(
+        "MINIO_ENDPOINT", "10.116.83.22:9000"
+    )
+    minio_bucket: str = os.getenv(
+        "MINIO_BUCKET", "transcription"
+    )
+    minio_access_key: str = os.getenv(
+        "MINIO_ACCESS_KEY", "YOUR_MINIO_ACCESS_KEY"
+    )
+    minio_secret_key: str = os.getenv(
+        "MINIO_SECRET_KEY", "YOUR_MINIO_SECRET_KEY"
+    )
+    minio_secure: bool = int(os.getenv(
+        "MINIO_SECURE",
+        1
+    ))
 
 
 variables = Variables()

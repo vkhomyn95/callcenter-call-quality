@@ -16,3 +16,5 @@ elevenlabs
 openai
 google
 google.genai
+json-repair
+minio

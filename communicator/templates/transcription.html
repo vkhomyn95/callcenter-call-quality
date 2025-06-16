@@ -23,10 +23,10 @@
                 </div>
             </div>
         </div>
-        <div class="content flex flex-direction-row" style="position: absolute;">
+        <div class="content flex flex-direction-row" style="position: absolute; height: calc(100% - 70px)">
             <div class="card-wrapper" style="position:relative; overflow-y: hidden; width: 30%">
                 <div class="card" style="width: 100%; height: 100%">
-                    <div class="p-20">
+                    <div class="p-10">
                         <span class="card-title">
                             Загальна інформація
                         </span>
@@ -58,22 +58,13 @@
                                 <div>Тривалість</div>
                                 <div class="recognition-label">{{ recognition.duration }}</div>
                             </div>
-                            <div class="flex flex-direction-column py-20 pb-10">
-                                <div>Аудіозаписи</div>
-                                <div class="flex flex-direction-column ml-10 pt-10">
-                                    {% if recognition.num_channels %}
-                                    {% if recognition.unique_uuid %}
-                                    <audio controls>
-                                        <source
-                                                src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, channel=recognition.num_channels, received_date=recognition.received_date) }}"
-                                                type="audio/wav"
-                                        >
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                    {% endif %}
-                                    {% endif %}
-                                </div>
-                            </div>
+                            <audio controls class="ml-20">
+                                <source
+                                        src="{{ url_for('transcription_audio', transcription_id=recognition.unique_uuid, received_date=recognition.received_date) }}"
+                                        type="audio/wav"
+                                >
+                                Your browser does not support the audio element.
+                            </audio>
 
                             {% if current_user.role.name == 'admin' %}
                             <div class="p-20">
@@ -113,7 +104,7 @@
             </div>
 
             <div class="card ml-15">
-                <div class="p-20">
+                <div class="p-10">
                     <span class="card-title">
                         Транскрипція
                     </span>
@@ -137,7 +128,7 @@
                             <div class="table-content">
                                 {% for r in recognition.result %}
 
-                                <div class="table-row">
+                                <div class="table-row" style="min-height: 47px">
                                     <div class="created-date" style="width: 10%; white-space: wrap">{{
                                         r.start }} - {{ r.end }}
                                     </div>

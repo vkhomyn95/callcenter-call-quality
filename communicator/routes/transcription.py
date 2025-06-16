@@ -1,12 +1,14 @@
 import json
-import os
+import logging
 
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
+from minio import S3Error
 from sqlalchemy.orm import Session
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse, FileResponse
+from starlette.responses import HTMLResponse, RedirectResponse, StreamingResponse, Response
 from starlette.templating import Jinja2Templates
 
+from communicator.database.minio_client import minio_client
 from communicator.database import elastic
 from communicator.database.database import get_db
 from communicator.utils.crud import load_simple_users, load_user_by_id
@@ -131,35 +133,53 @@ async def transcription(request: Request, transcription_id: str, db: Session = D
     )
 
 
-@router.get('/{transcription_id}/audio/{channel}/date/{received_date}', response_class=HTMLResponse)
-async def transcription_audio(request: Request, transcription_id: str, channel: int, received_date):
+@router.get('/{transcription_id}/audio/date/{received_date}')
+async def transcription_audio(request: Request, transcription_id: str, received_date: str):
     session_user = await get_user(request)
 
     if not session_user:
         return RedirectResponse(url="/login/", status_code=303)
 
-    filename = f"{transcription_id}_{channel}.wav"
+    if not minio_client:
+        raise HTTPException(status_code=503, detail="Minio storage is unavailable.")
 
-    # Construct the full file path based on the audio directory and filename
-    file_path = os.path.join(get_save_directory(received_date), filename)
+    object_name = get_object_name(received_date, transcription_id)
+    filename = f"{transcription_id}.wav"
 
-    # Check if the file exists
-    if os.path.exists(file_path):
-        # Serve the file using FileResponse
-        return FileResponse(file_path, media_type='audio/wav', filename=filename)
-    else:
-        # Handle file not found (you can return a 404 or any other appropriate response)
-        return RedirectResponse(url="/404", status_code=404)
+    try:
+        # Get the object from MinIO
+        response_obj = minio_client.get_object(variables.minio_bucket, object_name)
+
+        # Read all data into memory
+        audio_data = response_obj.read()
+
+        # Close the MinIO response
+        response_obj.close()
+        response_obj.release_conn()
+
+        # Return as FastAPI Response
+        return Response(
+            content=audio_data,
+            media_type='audio/wav',
+            headers={
+                'Content-Disposition': f'inline; filename="{filename}"',
+                'Content-Length': str(len(audio_data)),
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'no-cache'
+            }
+        )
+
+    except S3Error as exc:
+        if exc.code == "NoSuchKey":
+            raise HTTPException(status_code=404, detail="Audio does not exist.")
+        else:
+            logging.error(f"Error MinIO on get {object_name}: {exc}")
+            raise HTTPException(status_code=500, detail="Error accessing file.")
 
 
-def get_save_directory(received_date):
-    # Create directory path based on received date (year/month/day)
+def get_object_name(received_date: str, transcription_id: str) -> str:
     year, month, day = received_date.split('T')[0].split("-")
-    save_dir = os.path.join(variables.file_dir, year, month, day)
-
-    # Create the directories if they do not exist
-    os.makedirs(save_dir, exist_ok=True)
-    return save_dir
+    return f"{year}/{month}/{day}/{transcription_id}.wav"
 
 
 async def get_user(request: Request) -> dict:

@@ -221,3 +221,11 @@ def load_models(db: Session):
     except Exception as e:
         logging.error(f'  >> Error: {e}')
         return {"success": False, "data": str(e)}
+
+
+def load_model_by_task_name(db: Session, task_name: str):
+    try:
+        return db.query(Model).filter_by(task_name=task_name).one()
+    except Exception as e:
+        logging.error(f'  >> Error: {e}')
+        return {"success": False, "data": str(e)}

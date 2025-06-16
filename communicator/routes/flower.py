@@ -1,19 +1,28 @@
+import ast
 import json
 import logging
 import time
 import typing
 import weakref
 from functools import total_ordering
+
+from celery.result import AsyncResult
+from sqlalchemy.orm import Session
+from celery.backends.base import DisabledBackend
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.encoders import jsonable_encoder
-from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 from tornado import web
 
+from celery_worker.worker.start import celery
+from communicator.database.database import get_db
+from communicator.utils.crud import load_model_by_task_name
 from communicator.utils.flower_broker import Broker
-from communicator.utils.flower_tasks import iter_tasks, get_task_by_id
+from communicator.utils.flower_tasks import iter_tasks, get_task_by_id, parse_kwargs, parse_args, \
+    make_json_serializable, remove_task_by_id
 from communicator.utils.flower_template import humanize, format_time
 from communicator.variables import variables
 
@@ -113,7 +122,7 @@ async def flower_workers(
                 return templates.TemplateResponse("flower/workers.html", {
                     "request": request,
                     "workers": workers,
-                    "broker":  request.app.state.flower_app.capp.connection().as_uri(),
+                    "broker": request.app.state.flower_app.capp.connection().as_uri(),
                     "current_user": session_user
                 })
         except Exception as e:
@@ -320,7 +329,7 @@ async def flower_tasks_datatable(
         )
     )
 
-    total =  len(app.events.state.tasks)
+    total = len(app.events.state.tasks)
     total_pages = 1 if total <= limit else (total + (limit - 1)) // limit
 
     filtered_tasks = []
@@ -377,7 +386,7 @@ async def flower_task(
                 "current_user": session_user
             })
         except Exception as e:
-            logging.error(f"=== An error occurred reading flower task data template: ", e)
+            logging.error(f"=== An error occurred reading flower task data template: %s", e)
             raise HTTPException(
                 status_code=500,
                 detail="An error occurred reading flower task data template {}".format(e),
@@ -386,15 +395,99 @@ async def flower_task(
         return RedirectResponse(url="/login/", status_code=303)
 
 
-@router.post("/task/{task_id}/revoke")
-async def revoke_task(request: Request, task_id: str):
-    app = request.app.state.flower_app.capp
-
+@router.post("/task/{task_id}/remove")
+async def remove_task(request: Request, task_id: str):
+    app = request.app.state.flower_app
     try:
-        app.control.revoke(task_id, terminate=True, signal="SIGKILL")
-        return JSONResponse({"status": "ok"})
+        remove_task_by_id(app.events, task_id)
+        AsyncResult(task_id).forget()
+        return JSONResponse({"status": "ok", "message": "Celery failed task removed"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
+
+
+@router.post("/task/{task_id}/terminate")
+async def terminate_task(request: Request, task_id: str):
+    app = request.app.state.flower_app.capp
+    try:
+        # request.app.state.flower_app.capp.control.inspect().revoked()
+        app.control.revoke(task_id, terminate=True, signal='SIGTERM')
+
+        app.events.Dispatcher().send('task-revoked', uuid=task_id)
+
+        return JSONResponse({"status": "ok", "message": "Celery task aborted"})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@router.post("/task/{task_id}/abort")
+async def abort_task(request: Request, task_id: str):
+    """
+    Forcefully aborts a Celery task by its ID.
+
+    This endpoint sends a 'revoke' command with a terminate signal to the worker
+    executing the task. This is a forceful termination and should stop the task
+    process immediately. The task state will be updated to 'REVOKED' in the
+    Elasticsearch backend.
+    """
+    app = request.app.state.flower_app.capp
+    try:
+        # request.app.state.flower_app.capp.control.inspect().revoked()
+        app.control.revoke(task_id, signal='SIGTERM')
+
+        app.events.Dispatcher().send('task-revoked', uuid=task_id)
+
+        return JSONResponse({"status": "ok", "message": "Celery task aborted"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@router.post("/task/{task_id}/retry")
+async def retry_task(request: Request, task_id: str, db: Session = Depends(get_db)):
+    """
+        Get task info and reapply the task with the same arguments.
+        :param task_id: ID of the task to reapply.
+    """
+    app = request.app.state.flower_app
+    task = get_task_by_id(app.events, task_id)
+
+    if not task:
+        raise web.HTTPError(404, f"Unknown task '{task_id}'")
+
+    task_name = task.name
+
+    if not task_name:
+        raise web.HTTPError(400, "Cannot reapply task with no name")
+
+    try:
+        args = ast.literal_eval(task.args)
+        kwargs = ast.literal_eval(task.kwargs)
+    except Exception as exc:
+        logging.error("Error parsing task arguments: %s", exc)
+        raise web.HTTPError(400, f"Invalid task arguments: {str(exc)}") from exc
+
+    model = load_model_by_task_name(db, task_name)
+
+    if not task_name:
+        raise web.HTTPError(400, "Cannot reapply task with no task queue")
+
+    try:
+        # Ensure args and kwargs are JSON serializable
+        args = make_json_serializable(args)
+        kwargs = make_json_serializable(kwargs)
+
+        result = celery.send_task(task_name, args=args, kwargs=kwargs, queue=model.task_queue)
+        response = {'task-id': result.task_id}
+        if backend_configured(result):
+            response.update(state=result.state)
+        return JSONResponse({"status": "ok", "message": "Celery task retried", "task-id": result.id})
+    except Exception as exc:
+        logging.error("Error reapplying task with args=%s, kwargs=%s: %s", args, kwargs, str(exc))
+        raise web.HTTPError(500, f"Error reapplying task: {str(exc)}") from exc
+
+
+def backend_configured(result):
+    return not isinstance(result.backend, DisabledBackend)
 
 
 @router.get("/broker", response_class=HTMLResponse)
@@ -523,6 +616,7 @@ def as_dict_ref(worker):
     """
     Convert worker object to dictionary safely.
     """
+
     def safe_get(val):
         if isinstance(val, weakref.ReferenceType):
             return safe_get(val())
