@@ -17,7 +17,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 from tornado import web
 
-from celery_worker.worker.start import celery
+from communicator.job.start import celery
 from communicator.database.database import get_db
 from communicator.utils.crud import load_model_by_task_name
 from communicator.utils.flower_broker import Broker
