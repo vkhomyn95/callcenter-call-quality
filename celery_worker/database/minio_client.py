@@ -1,6 +1,6 @@
 from minio import Minio
 
-from communicator.variables import variables
+from celery_worker.variables import variables
 
 
 class MinioClient:
