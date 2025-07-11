@@ -77,11 +77,11 @@ async def create_user(
     user_schema.recognition = RecognitionConfiguration()
 
     user = User(**user_schema.dict(exclude_none=True, exclude=['tariff', 'recognition']))
-    user.tariff = Tariff()
     user.recognition = RecognitionConfiguration()
-
-    inserted_user = UserSchema.from_orm(insert_user(db, user))
+    user = insert_user(db, user)
     insert_user_tariff(db, user)
+
+    inserted_user = UserSchema.from_orm(load_user_by_uuid(db, user.uuid))
 
     return {
         "success": True,
