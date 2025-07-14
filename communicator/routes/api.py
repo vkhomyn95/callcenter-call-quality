@@ -114,15 +114,15 @@ def increment_user_license(
     if not user:
         return {"success": False, "data": "User does not exist with requested uuid"}
 
-    tariff = None
+    plan = None
 
-    for tariff in user.tariffs:
+    for tariff in user.tariff:
         if tariff.model.id == model_id:
-            tariff = tariff
+            plan = tariff
 
-    if tariff is None:
+    if plan is None:
         return {"success": False, "data": "User does not have any tariff by current model id"}
 
-    increment_user_tariff(db, tariff.id, count)
+    increment_user_tariff(db, plan.id, count)
 
     return {"success": True, "data": "Successfully incremented user tariff"}
