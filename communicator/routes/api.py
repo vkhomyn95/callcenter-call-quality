@@ -1,14 +1,14 @@
 import uuid
+
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
-
 from starlette.requests import Request
 from werkzeug.security import generate_password_hash
 
-from communicator.database import UserSchema, RecognitionConfiguration, Tariff, User, UserRole
+from communicator.database import UserSchema, RecognitionConfiguration, Tariff, User
 from communicator.database.database import get_db
 from communicator.utils.crud import load_user_by_uuid, load_user_by_username, insert_user, increment_user_tariff, \
-    insert_user_tariff
+    insert_user_tariff, activate_deactivate_user_tariff
 from communicator.variables import variables
 
 router = APIRouter()
@@ -126,3 +126,42 @@ def increment_user_license(
     increment_user_tariff(db, plan.id, count)
 
     return {"success": True, "data": "Successfully incremented user tariff"}
+
+
+@router.post("/{uuid}/license-status")
+def activate_deactivate_user_license(
+        uuid: str,
+        access_token: str = Query(None, alias="access_token"),
+        model_id: int = Query(0, alias="model_id"),
+        active: int = Query("1", alias="active"),
+        db: Session = Depends(get_db)
+):
+    if not access_token or access_token == "":
+        return {"success": False, "data": "Invalid access token"}
+
+    if not uuid or uuid == "":
+        return {"success": False, "data": "Invalid UUID"}
+
+    if access_token != variables.license_server_access_token:
+        return {"success": False, "data": "Invalid access token"}
+
+    if not active or active not in ["0", "1"]:
+        return {"success": False, "data": "Invalid license active status, should be 0 or 1"}
+
+    user = load_user_by_uuid(db, uuid)
+
+    if not user:
+        return {"success": False, "data": "User does not exist with requested uuid"}
+
+    plan = None
+
+    for tariff in user.tariff:
+        if tariff.model.id == model_id:
+            plan = tariff
+
+    if plan is None:
+        return {"success": False, "data": "User does not have any tariff by current model id"}
+
+    activate_deactivate_user_tariff(db, plan.id, int(active))
+
+    return {"success": True, "data": "Successfully update user tariff status"}

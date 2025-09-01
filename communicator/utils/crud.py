@@ -229,3 +229,22 @@ def load_model_by_task_name(db: Session, task_name: str):
     except Exception as e:
         logging.error(f'  >> Error: {e}')
         return {"success": False, "data": str(e)}
+
+
+def activate_deactivate_user_tariff(db: Session, tariff_id: int, active: int):
+    try:
+        tariff = db.query(Tariff).filter_by(id=tariff_id).one()
+        tariff.active = active
+
+        if active == 1:
+            # Deactivate all other tariffs of the same user
+            db.query(Tariff).filter(
+                Tariff.user_id == tariff.user_id,
+                Tariff.id != tariff.id
+            ).update({"active": False}, synchronize_session=False)
+
+        db.commit()
+
+    except Exception as e:
+        logging.error(f'  >> Error: {e}')
+        return {"success": False, "data": str(e)}
