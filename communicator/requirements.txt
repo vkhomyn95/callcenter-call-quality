@@ -13,7 +13,7 @@ mariadb==1.1.8
 python-dotenv
 python-multipart
 celery==5.4.0
-torchaudio
+torchaudio==2.4.1
 werkzeug
 soundfile
 pandas
