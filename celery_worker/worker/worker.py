@@ -244,7 +244,7 @@ def transcribe_gemini(self, received_date, duration, num_channels, user_id, talk
 
             uploaded_file = gemini.files.upload(file=file_bytes, config=UploadFileConfig(mime_type="audio/wav"))
 
-            model = "gemini-2.5-pro-preview-03-25"
+            model = "gemini-2.5-pro"
 
             contents = [
                 types.Content(
